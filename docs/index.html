@@ -73,7 +73,27 @@ button { font: inherit; color: inherit; }
 .heart svg { display: block; width: 100%; height: auto; }
 .heart path { fill: rgba(0, 0, 0, 0.35); stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.5; }
 .heart.on path { fill: var(--heart); stroke: #ffd2c8; }
-.goal { margin: 5px 0 0; font: 700 clamp(10px, 2.3vw, 13px)/1.25 var(--body); color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); max-width: 24ch; }
+.track { margin-top: 6px; width: 190px; max-width: 56%; padding: 6px 7px 5px; border-radius: 10px;
+  background: rgba(6, 11, 26, 0.5); border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); pointer-events: none; }
+.track[hidden] { display: none; }
+.thead { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; margin: 0; padding: 0;
+  background: none; border: 0; color: #f6b73c; font: 700 8.5px/1 var(--body); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; pointer-events: auto; }
+.thead b { color: rgba(255, 255, 255, 0.72); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+.thead svg { width: 9px; height: 6px; opacity: 0.65; transition: transform 0.18s; }
+.track.open .thead svg { transform: rotate(180deg); }
+.tlist { margin: 5px 0 0; padding: 0; list-style: none; display: grid; gap: 2.5px; }
+.tlist li { display: flex; align-items: baseline; gap: 5px; font: 700 10.5px/1.2 var(--body); color: rgba(255, 255, 255, 0.44); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); }
+.tlist li i { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; border: 1.4px solid rgba(255, 255, 255, 0.4); margin-top: 3px; }
+.tlist li.now { color: #fff; }
+.tlist li.now i { background: #f6b73c; border-color: #f6b73c; box-shadow: 0 0 0 3px rgba(246, 183, 60, 0.2); animation: tdot 1.7s ease-in-out infinite; }
+@keyframes tdot { 50% { box-shadow: 0 0 0 5px rgba(246, 183, 60, 0.05); } }
+.tlist li.done { color: rgba(255, 255, 255, 0.3); }
+.tlist li.done i { background: rgba(122, 224, 160, 0.85); border-color: rgba(122, 224, 160, 0.85); }
+.tlist li.done span { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.26); }
+.thint { margin: 4px 0 0; font: 500 9.5px/1.3 var(--body); color: #ffd894; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); }
+.track.compact:not(.open) .tlist li { display: none; }
+.track.compact:not(.open) .tlist li.now { display: flex; }
 .right { display: grid; gap: 5px; justify-items: end; }
 .score { font: 400 clamp(15px, 3.4vw, 22px)/1 var(--display); color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); font-variant-numeric: tabular-nums; }
 .pack { display: flex; gap: 6px; }
@@ -240,7 +260,20 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
       <div>
         <div class="hearts" id="hearts" role="img" aria-label="Health"></div>
         <div class="food" id="food"><span>Hunger</span><span class="bar2"><i id="foodfill"></i></span></div>
-        <p class="goal" id="goal"></p>
+        <div class="track" id="track" hidden>
+          <button class="thead" id="thead" type="button" aria-expanded="false" aria-controls="tlist">
+            <span>Objective <b id="tcount">0/5</b></span>
+            <svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 2l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <ol class="tlist" id="tlist">
+            <li data-k="food"><i></i><span></span></li>
+            <li data-k="rope"><i></i><span></span></li>
+            <li data-k="cave"><i></i><span></span></li>
+            <li data-k="lantern"><i></i><span></span></li>
+            <li data-k="lh"><i></i><span></span></li>
+          </ol>
+          <p class="thint" id="thint"></p>
+        </div>
       </div>
       <div class="right">
         <div class="score" id="score">0</div>
@@ -477,7 +510,7 @@ function newState() {
     p: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, coy: 0, jbuf: 0, hp: 5, inv: 0, kb: 0, throwCd: 0, throwT: 0, stab: 0, anim: 0, rope: false, ropeUsed: false, lantern: false, lanternUsed: false, food: 100, starveT: 0, sq: 0, stepN: 0, ph: 0, bleedT: 0, heartT: 0 },
     enemies: [], spears: [], parts: [], items: [], floaters: [],
     score: 0, kills: 0, cp: 0, lastSafe: 60, safeTimer: 0, bridgeGrow: false, bridgeT: 0, tie: null,
-    tutGate: tutStored(), bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
+    tutGate: tutStored(), ate: false, bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
   };
 }
 
@@ -837,7 +870,7 @@ function musicUpdate() {
 }
 
 // ---------------------------------------------------------------- HUD and messages
-var hudCache = '';
+var hudCache = '', trackSig = '';
 var heartsEl = $('hearts');
 for (var hi = 0; hi < 5; hi++) {
   var hd = document.createElement('span');
@@ -845,18 +878,61 @@ for (var hi = 0; hi < 5; hi++) {
   hd.innerHTML = '<svg viewBox="0 0 24 22"><path d="M12 21C4 14 1 10 1 6.5 1 3.4 3.4 1 6.4 1c2.3 0 4.5 1.3 5.6 3.4C13.100 2.300 15.300 1 17.600 1 20.600 1 23 3.400 23 6.500 23 10 20 14 12 21Z"/></svg>';
   heartsEl.appendChild(hd);
 }
-function objective() {
-  var p = S.p;
-  if (!p.rope && !p.ropeUsed) return 'Find a rope in the jungle';
-  if (!p.lantern && !p.lanternUsed) return 'Find the lantern in the cave';
-  if (p.lanternUsed) return 'The beacon is lit';
-  if (!S.bridgeGrow) return 'Tie your rope across the old bridge';
-  if (!S.bossDead) return 'Beat the Storm Panther';
-  return 'Take the lantern to the lighthouse and light the beacon';
+// The objective tracker: five stages of the run, the next one always named and
+// pointed at, the ones behind you ticked off.
+function nearestFruit(p) {
+  var best = 1e9, bx = -1;
+  S.items.forEach(function (it) {
+    if (it.got || it.type !== 'fruit') return;
+    var d = Math.abs(it.x - p.x);
+    if (d < best) { best = d; bx = it.x; }
+  });
+  return bx;
+}
+function distanceHint(p, x) {
+  if (x < 0) return '';
+  var d = Math.abs(x - p.x);
+  if (d < 140) return 'close by';
+  return Math.round(d / 20) + ' m ' + (x > p.x ? 'ahead' : 'behind you');
+}
+function trackState() {
+  var p = S.p, atLh = p.x > 5980;
+  var out = [
+    { k: 'food', label: 'Find food', done: S.ate, hint: 'Mangoes hang over the path', at: nearestFruit(p) },
+    { k: 'rope', label: p.rope ? 'Tie the rope across the bridge' : 'Locate the rope', done: p.ropeUsed, hint: p.rope ? 'The rotten bridge in the gorge' : 'In the jungle, past the thorns', at: p.rope ? GATE_X : ROPE_POS.x },
+    { k: 'cave', label: 'Explore the cave', done: p.x > 3620 || p.lantern, hint: 'East, where the trees give way to rock', at: 3660 },
+    { k: 'lantern', label: 'Find the lantern', done: p.lantern || p.lanternUsed, hint: 'On a ledge deep in the cave', at: LANTERN_POS.x },
+    { k: 'lh', label: (atLh || p.lanternUsed) ? 'Light the beacon' : 'Reach the lighthouse', done: p.lanternUsed,
+      hint: p.lanternUsed ? 'The island is lit' : (S.bossDead ? 'Climb to the lamp, then press Use' : (atLh ? 'The Storm Panther guards the stair' : 'East along the headland')), at: BEACON_X }
+  ];
+  for (var b = out.length - 2; b >= 0; b--) if (out[b + 1].done) out[b].done = true;   // progress is sequential
+  for (var i = 0; i < out.length; i++) {
+    if (out[i].done) continue;
+    var d = distanceHint(p, out[i].at);
+    if (d) out[i].hint += '  ' + d;
+    break;
+  }
+  return out;
+}
+function renderTrack(ts) {
+  var rows = $('tlist').children, done = 0, nowI = -1, i;
+  for (i = 0; i < ts.length; i++) if (ts[i].done) done++;
+  for (i = 0; i < rows.length && i < ts.length; i++) {
+    if (!ts[i].done && nowI < 0) nowI = i;
+    rows[i].className = ts[i].done ? 'done' : (i === nowI ? 'now' : '');
+    rows[i].children[1].textContent = ts[i].label;
+  }
+  $('tcount').textContent = done + '/' + ts.length;
+  $('thint').textContent = nowI >= 0 ? ts[nowI].hint : 'Every objective done. Light it up.';
+  $('track').hidden = S.mode === 'title' || TUT.on;
 }
 function updateHud() {
   var p = S.p;
   var zi = zoneIndex(p.x);
+  var ts = trackState(), sig = '', ti;
+  for (ti = 0; ti < ts.length; ti++) sig += ts[ti].label + (ts[ti].done ? '1' : '0') + ts[ti].hint;
+  sig += '|' + S.mode + '|' + TUT.on;
+  if (sig !== trackSig) { trackSig = sig; renderTrack(ts); }
   var key = [p.hp, Math.round(p.food / 2), p.rope, p.ropeUsed, p.lantern, p.lanternUsed, S.score, zi, S.bossDead, S.bridgeGrow, S.mode, Math.floor(S.time)].join('|');
   if (key === hudCache) return;
   hudCache = key;
@@ -873,7 +949,6 @@ function updateHud() {
   $('zone').textContent = (zi + 1) + '/5 ' + ZONES_META[zi].name;
   var rt = $('route').children;
   for (var ri = 0; ri < 5; ri++) { rt[ri].className = ri < zi ? 'seen' : (ri === zi ? 'now' : ''); }
-  $('goal').textContent = objective();
 }
 var toastEl = $('toast');
 function toast(msg, ms) { if (TUT.on) return; toastEl.textContent = msg; toastEl.classList.add('show'); S.toastT = (ms || 3200) / 1000; }
@@ -1409,7 +1484,7 @@ function updateItems() {
     if (dx * dx + dy * dy < 26 * 26) {
       if (it.type === 'fruit') {
         if (p.hp >= 5 && p.food >= 85) return;
-        it.got = true; if (it.tut) TUT.got = true; p.food = Math.min(100, p.food + 38); var healed = p.hp < 5; if (healed) p.hp += 1; S.score += 25; floater(it.x, it.y - 12, healed ? '+1 health, fed' : 'fed', '#9be58f'); burst(it.x, it.y, 8, '#ffb84a', 90, 0.5); SFX.pick();
+        it.got = true; if (it.tut) TUT.got = true; S.ate = true; p.food = Math.min(100, p.food + 38); var healed = p.hp < 5; if (healed) p.hp += 1; S.score += 25; floater(it.x, it.y - 12, healed ? '+1 health, fed' : 'fed', '#9be58f'); burst(it.x, it.y, 8, '#ffb84a', 90, 0.5); SFX.pick();
       } else if (it.type === 'rope') {
         it.got = true; p.rope = true; S.score += 300; floater(it.x, it.y - 14, 'Rope!', '#ffd66b'); burst(it.x, it.y, 14, '#d9b878', 130, 0.7); SFX.pick(); toast('You found the rope. The old bridge is waiting.', 3400);
       } else if (it.type === 'lantern') {
@@ -2709,6 +2784,8 @@ function layout() {
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   dk.width = cv.width; dk.height = cv.height;
   SC = cv.width / VW;
+  var trk = $('track');
+  if (trk) trk.classList.toggle('compact', h < 352);
   if (S) S.cam = clamp(S.cam, 0, WORLD - VW);
 }
 window.addEventListener('resize', layout);
@@ -2911,6 +2988,10 @@ function togglePause() { if (S.mode === 'play') pause(); else if (S.mode === 'pa
 // Click or tap anywhere on the game to attack.
 cv.addEventListener('pointerdown', function () { if (S.mode === 'play') attackEdge = true; });
 $('start').addEventListener('click', startGame);
+$('thead').addEventListener('click', function () {
+  var t = $('track'), on = t.classList.toggle('open');
+  this.setAttribute('aria-expanded', on ? 'true' : 'false');
+});
 $('tutok').addEventListener('click', function () { if (TUT.on) { var st = TUT_STEPS[TUT.step]; if (st) st.pressed = true; } });
 $('tutskip').addEventListener('click', function () { if (TUT.on) tutEnd(); });
 $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
