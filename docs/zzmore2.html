@@ -3458,45 +3458,45 @@ if (window.__LH_TEST) {
 window.addEventListener('load', function () {
   var L = window.__LH; if (!L) return;
   var bar = document.createElement('div');
-  bar.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:700 12px monospace;padding:5px;height:18px';
+  bar.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:700 12px monospace;padding:4px;height:16px';
   document.body.appendChild(bar);
-  var log = [];
-  function say(s) { log.push(s); bar.textContent = log.join(' || ') + ' ERR:' + (window.__ERR.join(';') || 'none'); }
+  function say(s) { bar.textContent = s + ' ERR:' + (window.__ERR.join(';') || 'none'); }
   try { localStorage.setItem('lh_tut_v1', '1'); } catch (e) {}
   L.start();
   var G = L.constants.GROUND;
   function place(x, y) { var S = L.S; S.mode = 'play'; document.getElementById('ov').hidden = true; S.p.x = x; S.p.y = y; S.p.vx = 0; S.p.vy = 0; S.cam = Math.max(0, Math.min(L.constants.WORLD - 640, x - 300)); }
-  // regen check, somewhere with no hazards at all
-  setTimeout(function () { var S = L.S; place(60, G); S.p.hp = 2; S.p.food = 100; S.regenT = 12.9; say('regen pre hp=' + S.p.hp + ' food=100'); }, 400);
-  setTimeout(function () { say('regen+1s hp=' + L.S.p.hp + ' regenT=' + L.S.regenT.toFixed(2)); }, 1500);
-  setTimeout(function () { say('regen+3s hp=' + L.S.p.hp); }, 3500);
-  // crops of each hiding place
   var shots = [];
-  function shot(label) { var cv = document.getElementById('cv'); var w = Math.round(cv.width * 0.52), h = Math.round(cv.height * 0.62); shots.push({ label: label, sx: Math.round(cv.width / 2 - w / 2), sy: Math.round(cv.height * 0.34), w: w, h: h }); }
-  setTimeout(function () { var S = L.S; S.open = {}; place(2366, G); S.t = 1.2; }, 3900);
-  setTimeout(function () { shot('DRUM ROCK (closed, throw spears at the three drums)'); }, 4700);
-  setTimeout(function () { var S = L.S; S.open.drums = true; S.drumsHit = [true,true,true]; S.items.forEach(function (it) { if (it.type === 'sun' && it.sid === 'drums') it.got = false; }); }, 4900);
-  setTimeout(function () { shot('DRUM ROCK (split open: sunstone inside)'); }, 5700);
-  setTimeout(function () { place(1650, G); }, 5900);
-  setTimeout(function () { shot('HOLLOW LOG (press Use to slip through)'); }, 6700);
-  setTimeout(function () { place(5876, G); }, 6900);
-  setTimeout(function () { shot("KEEPER'S WALL (break it with two spears)"); }, 7700);
-  setTimeout(function () { place(902, G); L.S.t = 0.4; }, 7900);
-  setTimeout(function () { shot('TIDE POCKET (drowned at every swell)'); }, 8700);
-  setTimeout(function () {
+  function shot(label) {
     var cv = document.getElementById('cv');
+    var w = Math.round(cv.width * 0.5), h = Math.round(cv.height * 0.62);
+    var c = document.createElement('canvas');
+    c.width = 470; c.height = Math.round(470 * h / w);
+    c.getContext('2d').drawImage(cv, Math.round(cv.width / 2 - w / 2), Math.round(cv.height * 0.34), w, h, 0, 0, c.width, c.height);
+    shots.push({ label: label, c: c });
+  }
+  setTimeout(function () { var S = L.S; S.open = {}; place(2366, G); S.t = 1.2; }, 400);
+  setTimeout(function () { shot('1 DRUM ROCK closed'); }, 1200);
+  setTimeout(function () { var S = L.S; S.open.drums = true; S.drumsHit = [true, true, true]; }, 1400);
+  setTimeout(function () { shot('2 DRUM ROCK split: sunstone'); }, 2200);
+  setTimeout(function () { place(1650, G); }, 2400);
+  setTimeout(function () { shot('3 HOLLOW LOG (hidden path)'); }, 3200);
+  setTimeout(function () { place(5876, G); }, 3400);
+  setTimeout(function () { shot("4 KEEPER'S WALL"); }, 4200);
+  setTimeout(function () {
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#000;padding:2px;overflow:hidden;font:700 11px monospace;color:#0f0';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#000;padding:2px;overflow:hidden;font:700 11px monospace;color:#0f0;display:flex;flex-wrap:wrap;gap:2px';
     document.body.appendChild(ov);
     shots.forEach(function (s) {
-      var c = document.createElement('canvas');
-      c.width = 760; c.height = Math.round(760 * s.h / s.w);
-      c.style.cssText = 'display:block;width:760px;margin:1px 0;border:1px solid #0f0';
-      c.getContext('2d').drawImage(cv, s.sx, s.sy, s.w, s.h, 0, 0, c.width, c.height);
-      var p = document.createElement('div'); p.textContent = s.label; ov.appendChild(p); ov.appendChild(c);
+      var d = document.createElement('div');
+      d.style.cssText = 'width:470px';
+      d.appendChild(document.createTextNode(s.label));
+      s.c.style.display = 'block';
+      s.c.style.border = '1px solid #0f0';
+      d.appendChild(s.c);
+      ov.appendChild(d);
     });
-    say('shots done');
-  }, 9600);
+    say('shots=' + shots.length);
+  }, 5200);
 });
 </script>
 </body>
