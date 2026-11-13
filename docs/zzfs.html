@@ -1,0 +1,16 @@
+<!doctype html><meta charset=utf-8><title>fs</title>
+<body style="margin:0;background:#111;color:#0f0;font:14px monospace">
+<button id="go" style="font-size:20px;padding:12px 20px">go fullscreen</button>
+<div id="out">idle</div>
+<div id="ev">events: none</div>
+<script>
+var out = document.getElementById('out'), evs = [];
+document.addEventListener('fullscreenchange', function(){ evs.push('fullscreenchange:' + !!document.fullscreenElement); document.getElementById('ev').textContent = 'events: ' + evs.join(' | '); });
+document.getElementById('go').addEventListener('click', function () {
+  var p;
+  try { p = document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) { out.textContent = 'threw: ' + e.name + ' ' + e.message; return; }
+  if (!p) { out.textContent = 'no promise returned'; return; }
+  p.then(function(){ out.textContent = 'resolved; fullscreenElement=' + !!document.fullscreenElement + ' w=' + innerWidth + ' h=' + innerHeight; })
+   .catch(function(e){ out.textContent = 'rejected: ' + e.name + ': ' + e.message; });
+});
+</script>
