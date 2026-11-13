@@ -1888,7 +1888,7 @@ function drawHunter() {
 // ------------------------------------------------ painted enemies
 // Each creature is one or two painted poses, sized to its collision box and
 // anchored on its feet so state changes never shift it off the ground.
-var ENEMY_META = {"crab1":{"w":43.5,"h":32.0,"dx":-21.75,"dy":-32.0},"crab2":{"w":41.5,"h":32.0,"dx":-20.75,"dy":-32.0},"snake1":{"w":36.0,"h":32.0,"dx":-18.0,"dy":-32.0},"bat1":{"w":32.5,"h":30.0,"dx":-16.25,"dy":-30.0},"bat2":{"w":22.5,"h":30.0,"dx":-11.25,"dy":-30.0},"boar1":{"w":52.0,"h":40.0,"dx":-26.0,"dy":-40.0},"boar2":{"w":63.5,"h":40.0,"dx":-31.75,"dy":-40.0},"panther1":{"w":76.0,"h":44.0,"dx":-38.0,"dy":-44.0},"panther2":{"w":93.5,"h":44.0,"dx":-46.75,"dy":-44.0},"boss1":{"w":118.0,"h":92.0,"dx":-59.0,"dy":-92.0},"boss2":{"w":124.0,"h":92.0,"dx":-62.0,"dy":-92.0}};
+var ENEMY_META = {"crab1":{"w":43.5,"h":26.0,"dx":-21.75,"dy":-26.0},"snake1":{"w":44.0,"h":34.0,"dx":-22.0,"dy":-34.0},"bat1":{"w":33.5,"h":32.0,"dx":-16.75,"dy":-32.0},"boar1":{"w":52.5,"h":42.0,"dx":-26.25,"dy":-42.0},"panther1":{"w":81.5,"h":44.0,"dx":-40.75,"dy":-44.0},"panther2":{"w":118.5,"h":44.0,"dx":-59.25,"dy":-44.0},"boss1":{"w":148.0,"h":94.0,"dx":-74.0,"dy":-94.0}};
 var ENEMY_SPR = {};
 (function loadEnemies() {
   for (var k in ENEMY_META) (function (k) {
@@ -1900,12 +1900,11 @@ var ENEMY_SPR = {};
   })(k);
 })();
 function enemyPose(e, t) {
-  if (e.type === 'crab') return (Math.floor(t * 9) % 2) ? 'crab2' : 'crab1';
-  if (e.type === 'snake') return 'snake1';
-  if (e.type === 'bat') return Math.sin(t * 19) > 0 ? 'bat1' : 'bat2';
-  if (e.type === 'boar') return (e.state === 'charge') ? 'boar2' : 'boar1';
   if (e.type === 'panther') return e.state === 'leap' ? 'panther2' : 'panther1';
-  if (e.type === 'boss') return e.state === 'leap' ? 'boss2' : 'boss1';
+  if (e.type === 'boss') return 'boss1';
+  if (e.type === 'boar') return 'boar1';
+  if (e.type === 'bat') return 'bat1';
+  if (e.type === 'snake') return 'snake1';
   return 'crab1';
 }
 
@@ -1939,8 +1938,17 @@ function drawEnemy(e) {
     var amp = e.type === 'bat' ? 2.6 : (e.type === 'boss' || e.type === 'panther' ? 0.6 : 0.9);
     var spd = e.type === 'bat' ? 9 : 2.6;
     var bob = Math.sin(t * spd + e.x * 0.05) * amp;
-    var lift = (e.state === 'leap' && (e.type === 'panther' || e.type === 'boss')) ? -6 : 0;
-    ctx.drawImage(s.img, s.dx, s.dy + bob + lift, s.w, s.h);
+    var lift = (e.state === 'leap' && e.type === 'panther') ? -6 : 0;
+    if (e.type === 'bat') {
+      ctx.save();
+      ctx.translate(0, s.dy * 0.5);
+      ctx.scale(1 + Math.sin(t * 18) * 0.04, 1 + Math.sin(t * 18) * 0.14);
+      ctx.translate(0, -s.dy * 0.5);
+      ctx.drawImage(s.img, s.dx, s.dy + bob, s.w, s.h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(s.img, s.dx, s.dy + bob + lift, s.w, s.h);
+    }
   } else {
     ctx.fillStyle = e.type === 'boss' ? '#3a2358' : '#7a3a2a';
     rrect(-e.w / 2, -e.h, e.w, e.h, 5); ctx.fill();
