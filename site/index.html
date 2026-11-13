@@ -121,7 +121,14 @@ button { font: inherit; color: inherit; }
 .stat b { font: 400 clamp(18px, 4vw, 24px)/1 var(--display); font-variant-numeric: tabular-nums; }
 .primary { min-height: 46px; padding: 11px 20px; border-radius: 10px; border: 0; background: var(--lamp); color: var(--lamp-ink); font: 400 18px/1 var(--display); letter-spacing: 0.02em; cursor: pointer; }
 .primary:hover { background: #ffc95c; }
-.controls { display: flex; justify-content: space-between; align-items: center; gap: 12px; user-select: none; -webkit-user-select: none; padding: 2px 2px; max-width: 960px; margin: 0 auto; width: 100%; }
+.controls {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  padding: 0 12px 10px; pointer-events: none;
+  user-select: none; -webkit-user-select: none;
+}
+.controls[hidden] { display: none; }
+.controls .pad { pointer-events: auto; }
 .pad { display: flex; gap: 10px; }
 .pad .use { opacity: 0.4; }
 .pad .use.ready { opacity: 1; border-color: var(--lamp); color: var(--lamp); animation: pulse 1s ease-in-out infinite; }
@@ -153,11 +160,11 @@ button { font: inherit; color: inherit; }
 .stick.act .knob { transition: none; }
 .pad button.down { background: var(--panel-hi); border-color: var(--lamp); }
 .pad .fire { background: #4a2410; border-color: #e0703a; }
-.stage.ov-ctl + .controls { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; padding: 0 12px 10px; max-width: none; z-index: 3; }
-.stage.ov-ctl + .controls .pad button { pointer-events: auto; width: 58px; height: 58px; opacity: 0.78; }
-.stage.ov-ctl + .controls .stick { pointer-events: auto; width: 86px; height: 86px; opacity: 0.82; }
-.stage.ov-ctl + .controls .pad .use { opacity: 0.4; }
-.stage.ov-ctl + .controls .pad .use.ready { opacity: 1; }
+.controls .pad button { width: 56px; height: 56px; opacity: 0.86; background: rgba(9, 18, 44, 0.62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.controls .stick { width: 82px; height: 82px; opacity: 0.9; }
+.controls .pad .use { opacity: 0.42; }
+.controls .pad .use.ready { opacity: 1; }
+@media (max-width: 520px) { .controls .pad button { width: 50px; height: 50px; } .controls .stick { width: 74px; height: 74px; } }
 .keys { margin: 0; text-align: center; font: 500 13px/1.4 var(--body); color: var(--mute); }
 .keys b { color: var(--fg); }
 .slot.done { border-style: solid; border-color: var(--leaf); color: var(--leaf); background: rgba(6, 56, 40, 0.72); }
@@ -232,17 +239,17 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
         <p class="how">Move <b>arrows</b> or <b>A D</b> &nbsp; Jump <b>Space</b> &nbsp; Attack <b>X</b> or click &nbsp; Use rope <b>E</b> &nbsp; Pause <b>P</b></p>
       </div>
     </div>
-  </div>
-  <div class="controls" id="ctl" hidden>
-    <div class="pad">
-      <div class="stick" id="stick" role="slider" aria-label="Walk" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0" tabindex="-1">
-        <div class="knob" id="knob"></div>
+    <div class="controls" id="ctl" hidden>
+      <div class="pad">
+        <div class="stick" id="stick" role="slider" aria-label="Walk" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0" tabindex="-1">
+          <div class="knob" id="knob"></div>
+        </div>
       </div>
-    </div>
-    <div class="pad">
-      <button id="b-use" class="use" type="button" aria-label="Use the rope">Use</button>
-      <button id="b-throw" class="fire" type="button" aria-label="Attack">Attack</button>
-      <button id="b-jump" type="button" aria-label="Jump">Jump</button>
+      <div class="pad">
+        <button id="b-use" class="use" type="button" aria-label="Use the rope">Use</button>
+        <button id="b-throw" class="fire" type="button" aria-label="Attack">Attack</button>
+        <button id="b-jump" type="button" aria-label="Jump">Jump</button>
+      </div>
     </div>
   </div>
   <p class="keys" id="keys">Arrows or <b>A D</b> run &middot; <b>Space</b> jump &middot; <b>X</b> or click attack (stab close, throw far) &middot; land on enemies to stomp &middot; <b>E</b> use rope or lantern &middot; <b>P</b> pause &middot; controller: left stick, <b>A</b> jump, <b>X</b> strike, <b>B</b> use, <b>Start</b> pause</p>
@@ -2553,26 +2560,13 @@ function layout() {
   touchMode = showCtl;
   ctl.hidden = !showCtl;
   $('keys').hidden = showCtl;
-  stage.classList.toggle('ov-ctl', showCtl && land);
   var wrapW = Math.min(PW - (forced ? 8 : 32), forced ? PW : 960);
-  var ctlH = showCtl && !land ? Math.max(96, ctl.offsetHeight || 0) : 0;   // the stick made this row taller
-  var hAvail = Math.max(200, PH - barEl.offsetHeight - ctlH - (land ? (forced ? 8 : 14) : 48));
+  // the pad floats over the picture, so the picture gets every pixel left over
+  var hAvail = Math.max(200, PH - barEl.offsetHeight - (showCtl ? (forced ? 8 : 14) : 48));
   var asp = wrapW / hAvail;
   VW = asp >= 1.45 ? 640 : (asp >= 1.0 ? 480 : 340);
   var w = Math.min(wrapW, hAvail * VW / H), h = w * H / VW;
   stage.style.width = Math.round(w) + 'px'; stage.style.height = Math.round(h) + 'px';
-  // in landscape the controls float over the game, so line them up with the frame itself
-  if (showCtl && land && !forced) {
-    var sr = stage.getBoundingClientRect();
-    ctl.style.position = 'absolute';
-    ctl.style.left = Math.round(sr.left + scrollX) + 'px';
-    ctl.style.right = 'auto';
-    ctl.style.margin = '0';
-    ctl.style.top = Math.round(sr.bottom + scrollY - (ctl.offsetHeight || 96) - 8) + 'px';
-    ctl.style.width = Math.round(sr.width) + 'px';
-  } else {
-    ctl.style.position = ctl.style.left = ctl.style.right = ctl.style.margin = ctl.style.top = ctl.style.width = '';
-  }
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   dk.width = cv.width; dk.height = cv.height;
