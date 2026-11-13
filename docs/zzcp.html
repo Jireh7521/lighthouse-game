@@ -3141,11 +3141,38 @@ if (window.__LH_TEST) {
 window.addEventListener('load', function () {
   var L = window.__LH; if (!L) return;
   var bar = document.createElement('div');
-  bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#000;color:#0f0;font:700 12px monospace;padding:6px;height:16px';
+  bar.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:700 13px monospace;padding:5px;height:18px';
   document.body.appendChild(bar);
-  bar.textContent = 'probe ready ERR:' + (window.__ERR.join(';') || 'none');
+  function say(s) { bar.textContent = s + '  ERR:' + (window.__ERR.join(';') || 'none'); }
+  say('ready');
   try { localStorage.setItem('lh_tut_v1', '1'); } catch (e) {}
   L.start();
+  function place(unlit) {
+    var S = L.S;
+    S.mode = 'play'; document.getElementById('ov').hidden = true;
+    S.p.x = 1500; S.p.y = 296; S.p.vy = 0; S.p.hp = 5; S.p.vx = 0;
+    if (unlit) { S.cp = 60; S.cpI = 0; S.cpT = 3; } else { S.cp = 1420; S.cpI = 1; S.cpT = 0.3; }
+  }
+  function crop(tag, top) {
+    var cv = document.getElementById('cv'), g;
+    var out = document.createElement('canvas');
+    var w = cv.width * 0.46, h = cv.height * 0.6, sx = cv.width * 0.5 - w / 2 + cv.width * 0.03, sy = cv.height * 0.4;
+    out.width = 460; out.height = Math.round(460 * h / w);
+    g = out.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(cv, sx, sy, w, h, 0, 0, out.width, out.height);
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:6px;top:' + top + 'px;z-index:9999;background:#000;border:1px solid #0f0';
+    var lbl = document.createElement('div');
+    lbl.textContent = tag; lbl.style.cssText = 'color:#0f0;font:700 12px monospace;padding:2px 4px';
+    box.appendChild(lbl); box.appendChild(out);
+    document.body.appendChild(box);
+  }
+  setTimeout(function () { place(true); }, 400);
+  setTimeout(function () { crop('UNLIT (not reached yet)', 26); }, 1500);
+  setTimeout(function () { place(false); }, 1900);
+  setTimeout(function () { crop('LIT (checkpoint reached, bloom)', 320); }, 2600);
+  setTimeout(function () { say('cropped; cpI=' + L.S.cpI + ' cp=' + L.S.cp); }, 2800);
 });
 </script>
 </body>
