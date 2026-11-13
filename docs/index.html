@@ -184,6 +184,7 @@ var ctx = cv.getContext('2d');
 var dk = document.createElement('canvas');
 var dctx = dk.getContext('2d');
 var VW = 640, SC = 1;
+var gfxLite = false, gfxAcc = 0, gfxN = 0;
 
 function $(id) { return document.getElementById(id); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -247,6 +248,15 @@ function rgb(c, a) { var s = (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0); r
 // k > 0 lightens towards white, k < 0 darkens towards black. Used for volume shading.
 function tint(c, k) { return k >= 0 ? rgb(mixc(c, [255, 255, 255], k)) : rgb(mixc(c, [0, 0, 0], -k)); }
 // A soft band of coloured air, laid over the far layers so distance reads as depth.
+var softDot = null;
+function softDotSprite() {
+  if (softDot) return softDot;
+  var s = document.createElement('canvas'); s.width = s.height = 64;
+  var g = s.getContext('2d'), rg = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+  rg.addColorStop(0, 'rgba(0,0,0,0.55)'); rg.addColorStop(0.6, 'rgba(0,0,0,0.22)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+  softDot = s; return s;
+}
 function hazeBand(c, y, h, a) {
   var g = ctx.createLinearGradient(0, y, 0, y + h);
   g.addColorStop(0, rgb(c, 0)); g.addColorStop(0.55, rgb(c, a)); g.addColorStop(1, rgb(c, 0));
@@ -1303,11 +1313,7 @@ function treeLayer(f, tile, hBase, colKey, seed, th) {
     var sx = i * tile - off + rnd(i + seed) * tile * 0.7;
     var h = hBase * (0.75 + rnd(i * 3 + seed) * 0.6);
     var c = th[colKey];
-    ctx.save(); ctx.translate(sx, GROUND + 4); ctx.scale(1, 0.24);
-    var sg = ctx.createRadialGradient(0, 0, 2, 0, 0, h * 0.34);
-    sg.addColorStop(0, 'rgba(0,0,0,0.3)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = sg; ctx.fillRect(-h * 0.34, -h * 0.34, h * 0.68, h * 0.68);
-    ctx.restore();
+    if (!gfxLite && f > 0.45) { var sd = softDotSprite(), sr = h * 0.36; ctx.drawImage(sd, sx - sr, GROUND + 4 - sr * 0.24, sr * 2, sr * 0.48); }
     if (th.palm > 0.5) drawPalm(sx, GROUND + 4, h, c); else drawBroad(sx, GROUND + 6, h * 1.25, c);
   }
 }
@@ -1319,15 +1325,16 @@ function drawSky(th, cave) {
   g.addColorStop(1, rgb(th.skyB));
   ctx.fillStyle = g; ctx.fillRect(0, 0, VW, H);
   // soft cloud banks drifting above the horizon
-  if (cave < 0.98 && th.dens < 0.9) {
+  if (!gfxLite && cave < 0.98 && th.dens < 0.9) {
     var cc = mixc(th.skyB, [255, 255, 255], th.sun > 0.4 ? 0.4 : 0.16);
-    for (var ci = 0; ci < 6; ci++) {
-      var cw = 90 + rnd(ci * 3.7) * 150;
-      var cxp = ((ci * 260 + 40 - cam * 0.05 - S.t * 3) % (VW + 320) + VW + 320) % (VW + 320) - 160;
-      var cyp = 26 + rnd(ci * 5.1) * 96;
-      var cg2 = ctx.createRadialGradient(cxp, cyp, 1, cxp, cyp, cw);
-      cg2.addColorStop(0, rgb(cc, 0.17)); cg2.addColorStop(0.6, rgb(cc, 0.07)); cg2.addColorStop(1, rgb(cc, 0));
-      ctx.fillStyle = cg2; ctx.fillRect(cxp - cw, cyp - cw, cw * 2, cw * 2);
+    var cg2 = ctx.createRadialGradient(0, 0, 0.12, 0, 0, 1);
+    cg2.addColorStop(0, rgb(cc, 0.2)); cg2.addColorStop(0.55, rgb(cc, 0.08)); cg2.addColorStop(1, rgb(cc, 0));
+    ctx.fillStyle = cg2;
+    for (var ci = 0; ci < 4; ci++) {
+      var cw = 55 + rnd(ci * 3.7) * 70;
+      var cxp = ((ci * 280 + 40 - cam * 0.05 - S.t * 3) % (VW + 320) + VW + 320) % (VW + 320) - 160;
+      var cyp = 30 + rnd(ci * 5.1) * 86;
+      ctx.save(); ctx.translate(cxp, cyp); ctx.scale(cw, cw * 0.7); ctx.fillRect(-1, -1, 2, 2); ctx.restore();
     }
   }
   if (th.stars > 0.02 && cave < 1) {
@@ -1451,7 +1458,7 @@ function drawGround(th) {
     }
     ctx.stroke();
   }
-  for (var gi = 0; gi < 110; gi++) {
+  for (var gi = 0; gi < (gfxLite ? 32 : 72); gi++) {
     var qx = (gi * 79 + 13) % VW, qy = GROUND + 6 + ((gi * 41) % Math.max(10, H - GROUND - 8));
     var qr = rnd(gi * 2.3);
     ctx.fillStyle = qr > 0.62 ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.11)';
@@ -1933,10 +1940,10 @@ function render() {
   drawSky(th, cave);
   drawSea(th);
   drawFar(th);
-  if (cave < 0.7) hazeBand(mixc(th.skyB, th.far, 0.55), GROUND - 110, 130, 0.24);
+  if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.far, 0.55), GROUND - 110, 130, 0.24);
   drawDistantTower(th);
   treeLayer(0.3, 230, 150, 'tree2', 1, th);
-  if (cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
+  if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
   treeLayer(0.6, 210, 190, 'tree1', 50, th);
   drawCaveWall(cave);
   drawGround(th);
@@ -2012,12 +2019,13 @@ function render() {
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(dk, 0, 0); ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   }
   // colour grade: cool air up top, warm light near the horizon
-  var grade = ctx.createLinearGradient(0, 0, 0, H);
-  grade.addColorStop(0, 'rgba(60,90,190,0.14)');
-  grade.addColorStop(0.55, 'rgba(255,190,120,0.06)');
-  grade.addColorStop(1, 'rgba(30,10,50,0.16)');
-  ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = grade; ctx.fillRect(0, 0, VW, H);
-  ctx.globalCompositeOperation = 'source-over';
+  if (!gfxLite) {
+    var grade = ctx.createLinearGradient(0, 0, 0, H);
+    grade.addColorStop(0, 'rgba(48,74,168,0.10)');
+    grade.addColorStop(0.55, 'rgba(255,196,130,0.045)');
+    grade.addColorStop(1, 'rgba(26,10,46,0.11)');
+    ctx.fillStyle = grade; ctx.fillRect(0, 0, VW, H);
+  }
   // vignette and hit flash
   var vg = ctx.createRadialGradient(VW / 2, H / 2, H * 0.55, VW / 2, H / 2, VW * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
@@ -2168,8 +2176,16 @@ $('mute').addEventListener('click', function () {
 // ---------------------------------------------------------------- main loop
 var last = performance.now(), acc = 0;
 function frame(now) {
-  var dt = Math.min(0.1, (now - last) / 1000);
+  var rawDt = (now - last) / 1000, dt = Math.min(0.1, rawDt);
   last = now;
+  // Keep the look, but shed the optional polish on a slow device.
+  if (rawDt > 0 && rawDt < 0.5) { gfxAcc += rawDt; gfxN++; }
+  if (gfxN >= 90) {
+    var avg = gfxAcc / gfxN;
+    if (avg > 0.028 && !gfxLite) gfxLite = true;
+    else if (avg < 0.017 && gfxLite) gfxLite = false;
+    gfxAcc = 0; gfxN = 0;
+  }
   if (S.mode === 'play' || S.mode === 'winning' || S.mode === 'dead' || S.mode === 'won') {
     acc += dt;
     while (acc > 1 / 60) { step(1 / 60); acc -= 1 / 60; }
