@@ -165,6 +165,32 @@ button { font: inherit; color: inherit; }
 .controls .pad .use { opacity: 0.42; }
 .controls .pad .use.ready { opacity: 1; }
 @media (max-width: 520px) { .controls .pad button { width: 50px; height: 50px; } .controls .stick { width: 74px; height: 74px; } }
+.tut {
+  position: absolute; left: 50%; top: 44px; transform: translateX(-50%); z-index: 3;
+  width: min(322px, 88%); display: grid; gap: 3px; padding: 9px 12px 8px; border-radius: 12px;
+  background: rgba(6, 12, 30, 0.84); border: 1px solid rgba(246, 183, 60, 0.55);
+  box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); pointer-events: none;
+  animation: tutpop 0.22s ease-out;
+}
+@keyframes tutpop { from { opacity: 0; transform: translateX(-50%) translateY(-6px); } to { opacity: 1; } }
+.tut[hidden] { display: none; }
+.tut .tutk { margin: 0; font: 700 9px/1 var(--body); letter-spacing: 0.16em; text-transform: uppercase; color: #f6b73c; }
+.tut b { font: 400 17px/1.15 var(--display); color: #fff; }
+.tut p { margin: 0; font: 500 12.5px/1.45 var(--body); color: #dfe6f2; }
+.tutbtns { display: flex; gap: 7px; margin-top: 4px; pointer-events: auto; }
+.tutbtns button {
+  padding: 7px 11px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.24);
+  background: rgba(255,255,255,0.08); color: #cfd8e6; font: 700 10px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.tutbtns button.ok { background: #f6b73c; border-color: #f6b73c; color: #2a1c04; }
+.tutbtns button[hidden] { display: none; }
+.tiny {
+  justify-self: start; padding: 8px 12px; border-radius: 9px; cursor: pointer;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.22); color: #cfd8e6;
+  font: 700 10px/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.tiny:hover { border-color: var(--lamp); color: var(--lamp); }
 .keys { margin: 0; text-align: center; font: 500 13px/1.4 var(--body); color: var(--mute); }
 .keys b { color: var(--fg); }
 .slot.done { border-style: solid; border-color: var(--leaf); color: var(--leaf); background: rgba(6, 56, 40, 0.72); }
@@ -237,6 +263,16 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
         <p class="note" id="yourbest"></p>
         <button class="primary" id="start" type="button">Start hunting</button>
         <p class="how">Move <b>arrows</b> or <b>A D</b> &nbsp; Jump <b>Space</b> &nbsp; Attack <b>X</b> or click &nbsp; Use rope <b>E</b> &nbsp; Pause <b>P</b></p>
+        <button class="tiny" id="tutagain" type="button" hidden>Replay the basics</button>
+      </div>
+    </div>
+    <div class="tut" id="tut" hidden>
+      <p class="tutk" id="tutk"></p>
+      <b id="tutT"></b>
+      <p id="tutX"></p>
+      <div class="tutbtns">
+        <button class="ok" id="tutok" type="button" hidden>Got it</button>
+        <button id="tutskip" type="button">Skip</button>
       </div>
     </div>
     <div class="controls" id="ctl" hidden>
@@ -441,7 +477,7 @@ function newState() {
     p: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, coy: 0, jbuf: 0, hp: 5, inv: 0, kb: 0, throwCd: 0, throwT: 0, stab: 0, anim: 0, rope: false, ropeUsed: false, lantern: false, lanternUsed: false, food: 100, starveT: 0, sq: 0, stepN: 0, ph: 0, bleedT: 0, heartT: 0 },
     enemies: [], spears: [], parts: [], items: [], floaters: [],
     score: 0, kills: 0, cp: 0, lastSafe: 60, safeTimer: 0, bridgeGrow: false, bridgeT: 0, tie: null,
-    bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
+    tutGate: tutStored(), bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
   };
 }
 
@@ -840,7 +876,7 @@ function updateHud() {
   $('goal').textContent = objective();
 }
 var toastEl = $('toast');
-function toast(msg, ms) { toastEl.textContent = msg; toastEl.classList.add('show'); S.toastT = (ms || 3200) / 1000; }
+function toast(msg, ms) { if (TUT.on) return; toastEl.textContent = msg; toastEl.classList.add('show'); S.toastT = (ms || 3200) / 1000; }
 function toastOnce(key, msg, ms) { if (!S.toasted[key]) { S.toasted[key] = true; toast(msg, ms); } }
 function toastRate(key, msg) { if (!S.toasted[key] || S.t - S.toasted[key] > 4) { S.toasted[key] = S.t; toast(msg, 2800); } }
 
@@ -853,6 +889,71 @@ function burst(x, y, n, col, spd, life) {
 }
 function floater(x, y, text, col) { S.floaters.push({ x: x, y: y, text: text, col: col || '#fff', t: 0 }); }
 
+// ---------------------------------------------------------------- tutorial
+// A short guided start, once per browser: walk, jump, collect, hunger, fight,
+// then shove a jammed gate open with Use. The run clock waits until it is done.
+var TUT_KEY = 'lh_tut_v1', TUT_GATE_X = 430;
+function tutStored() { try { return localStorage.getItem(TUT_KEY) === '1'; } catch (e) { return false; } }
+function tutStore() { try { localStorage.setItem(TUT_KEY, '1'); } catch (e) { /* private mode */ } }
+var TUT_STEPS = [
+  { id: 'move', title: 'Walk', text: 'Hold right, or slide the stick, to walk along the shore.' },
+  { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump. You will need it to clear the boulder ahead.' },
+  { id: 'grab', title: 'Collect', text: 'Walk into the mango to pick it up.' },
+  { id: 'food', title: 'Hunger', text: 'That bar up top is your hunger. It drains as you run, and fruit fills it. Empty, it costs health.', ok: true },
+  { id: 'fight', title: 'Fight', text: 'Press X or tap Attack to throw your spear. Land on a crab to stomp it.' },
+  { id: 'use', title: 'Use', text: 'The driftwood gate is jammed. Stand by it, then press E or tap Use to shove it open.' }
+];
+var TUT = { on: false, step: 0, t: 0, x0: 60, jumped: false, got: false, atk: false, force: false };
+function tutStart() {
+  TUT.on = true; TUT.step = 0; TUT.t = 0; TUT.x0 = S.p.x;
+  TUT.jumped = false; TUT.got = false; TUT.atk = false;
+  S.tutGate = false;
+  S.p.food = Math.min(S.p.food, 62);   // you set out hungry, so the lesson lands
+  tutShow();
+}
+function tutShow() {
+  var st = TUT_STEPS[TUT.step];
+  if (!st) return tutEnd();
+  TUT.t = 0;
+  if (st.id === 'move') TUT.x0 = S.p.x;
+  if (st.id === 'jump') TUT.jumped = false;
+  if (st.id === 'fight') TUT.atk = false;
+  st.pressed = false;
+  $('tut').hidden = false;
+  $('tutk').textContent = 'Lesson ' + (TUT.step + 1) + ' of ' + TUT_STEPS.length;
+  $('tutT').textContent = st.title;
+  $('tutX').textContent = st.text;
+  $('tutok').hidden = !st.ok;
+  if (st.id === 'grab') {
+    var fx = clamp(S.p.x + 120, 160, TUT_GATE_X - 46);
+    S.items.push({ type: 'fruit', x: fx, y: 280, got: false, tut: true });
+  }
+  SFX.pick();
+}
+function tutNext() { TUT.step += 1; if (TUT.step >= TUT_STEPS.length) tutEnd(); else tutShow(); }
+function tutEnd() {
+  TUT.on = false;
+  S.tutGate = true;
+  tutStore();
+  $('tut').hidden = true;
+  var b = $('tutagain'); if (b) b.hidden = false;
+  SFX.pick();
+  toast('The way is open. Head east, into the jungle.', 3400);
+}
+function tutTick(dt) {
+  if (!TUT.on) return;
+  TUT.t += dt;
+  var st = TUT_STEPS[TUT.step]; if (!st) return;
+  var p = S.p, ok = false;
+  if (st.id === 'move') ok = Math.abs(p.x - TUT.x0) > 55;
+  else if (st.id === 'jump') ok = TUT.jumped;
+  else if (st.id === 'grab') ok = TUT.got;
+  else if (st.id === 'food') ok = TUT.t > 10 || st.pressed;
+  else if (st.id === 'fight') ok = TUT.atk;
+  else if (st.id === 'use') ok = S.tutGate;
+  if (ok) tutNext();
+}
+
 // ---------------------------------------------------------------- game flow
 function startGame() {
   var keepBest = best;
@@ -864,7 +965,8 @@ function startGame() {
   S.mode = 'play';
   $('ov').hidden = true;
   hudCache = '';
-  toast(touchMode ? 'Slide the stick to walk. Tap Attack to fight. Land on enemies to stomp them.' : 'Run right. Press X or click to attack. Land on enemies to stomp them.', 5000);
+  if (!tutStored() || TUT.force) { TUT.force = false; tutStart(); }
+  else toast(touchMode ? 'Slide the stick to walk. Tap Attack to fight. Land on enemies to stomp them.' : 'Run right. Press X or click to attack. Land on enemies to stomp them.', 5000);
 }
 
 function respawnAt(x) {
@@ -1000,6 +1102,14 @@ function nearTower() {
 function interact() {
   var p = S.p;
   if (S.mode !== 'play') return;
+  if (!S.tutGate && Math.abs(p.x - TUT_GATE_X) < 90) {
+    S.tutGate = true;
+    S.score += 50;
+    SFX.throw_();
+    floater(TUT_GATE_X, GROUND - 74, 'Gate open', '#ffd66b');
+    burst(TUT_GATE_X, GROUND - 28, 14, '#d9b878', 110, 0.65);
+    return;
+  }
   if (nearTower()) {
     if (p.lantern) {
       p.lantern = false; p.lanternUsed = true; S.score += 300;
@@ -1023,6 +1133,7 @@ function interact() {
 // One attack button: stab whatever is right in front of you, otherwise throw the spear.
 function attack() {
   buzz(10);
+  TUT.atk = true;
   var p = S.p;
   if (p.throwCd > 0) return;
   for (var i = 0; i < S.enemies.length; i++) {
@@ -1072,7 +1183,7 @@ function updatePlayer(dt) {
   p.jbuf -= dt;
   p.coy -= dt;
   if (p.onGround) p.coy = 0.1;
-  if (p.jbuf > 0 && p.coy > 0) { p.vy = -JUMP * (p.food <= 0 ? 0.93 : 1) * (inMudNow(p) ? 0.9 : 1); p.jbuf = 0; p.coy = 0; p.onGround = false; p.sq = -0.22; SFX.jump(); burst(p.x, p.y, 5, DUST[zoneIndex(p.x)], 70, 0.35); }
+  if (p.jbuf > 0 && p.coy > 0) { p.vy = -JUMP * (p.food <= 0 ? 0.93 : 1) * (inMudNow(p) ? 0.9 : 1); p.jbuf = 0; p.coy = 0; p.onGround = false; p.sq = -0.22; TUT.jumped = true; SFX.jump(); burst(p.x, p.y, 5, DUST[zoneIndex(p.x)], 70, 0.35); }
   // mud drags, tide surges push you back, gales shove you
   var inMud = false;
   if (p.onGround) for (var mi = 0; mi < S.obst.length; mi++) { var mo = S.obst[mi]; if (mo.k === 'mud' && Math.abs(p.x - mo.x) < mo.w / 2) inMud = true; }
@@ -1103,6 +1214,7 @@ function updatePlayer(dt) {
     }
   }
   p.x = clamp(nx, 20, WORLD - 40);
+  if (!S.tutGate && p.x > TUT_GATE_X - 18) p.x = TUT_GATE_X - 18;
 
   var prev = p.y;
   p.y += p.vy * dt;
@@ -1297,7 +1409,7 @@ function updateItems() {
     if (dx * dx + dy * dy < 26 * 26) {
       if (it.type === 'fruit') {
         if (p.hp >= 5 && p.food >= 85) return;
-        it.got = true; p.food = Math.min(100, p.food + 38); var healed = p.hp < 5; if (healed) p.hp += 1; S.score += 25; floater(it.x, it.y - 12, healed ? '+1 health, fed' : 'fed', '#9be58f'); burst(it.x, it.y, 8, '#ffb84a', 90, 0.5); SFX.pick();
+        it.got = true; if (it.tut) TUT.got = true; p.food = Math.min(100, p.food + 38); var healed = p.hp < 5; if (healed) p.hp += 1; S.score += 25; floater(it.x, it.y - 12, healed ? '+1 health, fed' : 'fed', '#9be58f'); burst(it.x, it.y, 8, '#ffb84a', 90, 0.5); SFX.pick();
       } else if (it.type === 'rope') {
         it.got = true; p.rope = true; S.score += 300; floater(it.x, it.y - 14, 'Rope!', '#ffd66b'); burst(it.x, it.y, 14, '#d9b878', 130, 0.7); SFX.pick(); toast('You found the rope. The old bridge is waiting.', 3400);
       } else if (it.type === 'lantern') {
@@ -1413,7 +1525,8 @@ function step(dt) {
   if (S.mode === 'play' && S.freeze > 0) {
     S.freeze -= dt;
   } else if (S.mode === 'play') {
-    S.time += dt;
+    if (!TUT.on) S.time += dt;   // the clock starts when the lesson is over
+    tutTick(dt);
     updatePlayer(dt);
     if (S.mode !== 'play' && S.mode !== 'winning') { return; }
     S.enemies.forEach(function (e) { updateEnemy(e, dt); voiceTick(e, dt); });
@@ -1433,7 +1546,7 @@ function step(dt) {
   // camera: leads the way you run
   var target = clamp(S.p.x - VW * 0.36 + S.p.face * VW * 0.06 + S.p.vx * 0.12, 0, WORLD - VW);
   S.cam += (target - S.cam) * Math.min(1, dt * 6);
-  $('b-use').classList.toggle('ready', S.mode === 'play' && ((S.p.rope && nearGate()) || (S.p.lantern && nearTower())));
+  $('b-use').classList.toggle('ready', S.mode === 'play' && ((S.p.rope && nearGate()) || (S.p.lantern && nearTower()) || (!S.tutGate && Math.abs(S.p.x - TUT_GATE_X) < 90)));
   updateHud();
 }
 
@@ -1884,6 +1997,30 @@ function drawPool(th) {
   ctx.strokeStyle = 'rgba(255,255,255,' + 0.4 * lit + ')'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.ellipse(sx + POOL.w / 2, GROUND + 1, POOL.w / 4 + Math.sin(S.t * 2) * 3, 3, 0, 0, Math.PI * 2); ctx.stroke();
 }
+function drawTutGate() {
+  if (S.tutGate) return;
+  var x = TUT_GATE_X - cam;
+  if (x < -90 || x > VW + 90) return;
+  shadowAt(TUT_GATE_X, GROUND, 42, 0.32);
+  ctx.fillStyle = '#6b4a2b';
+  rrect(x - 18, GROUND - 60, 9, 60, 3); ctx.fill();
+  rrect(x + 9, GROUND - 60, 9, 60, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,214,140,0.22)';
+  ctx.fillRect(x - 17, GROUND - 60, 2.4, 60); ctx.fillRect(x + 10, GROUND - 60, 2.4, 60);
+  for (var i = 0; i < 4; i++) {
+    var yy = GROUND - 12 - i * 13;
+    ctx.save(); ctx.translate(x, yy); ctx.rotate((i % 2 ? 1 : -1) * 0.035);
+    var g = ctx.createLinearGradient(-22, 0, 22, 0);
+    g.addColorStop(0, '#8a6236'); g.addColorStop(0.5, '#ab7a46'); g.addColorStop(1, '#5a3f22');
+    ctx.fillStyle = g; rrect(-22, -5, 44, 9.5, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.26)'; ctx.fillRect(-22, 2, 44, 1.6);
+    ctx.restore();
+  }
+  ctx.strokeStyle = '#d9b878'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - 17, GROUND - 54); ctx.lineTo(x + 16, GROUND - 16); ctx.moveTo(x + 17, GROUND - 54); ctx.lineTo(x - 16, GROUND - 16); ctx.stroke();
+  if (Math.abs(S.p.x - TUT_GATE_X) < 110) drawPrompt(x, GROUND - 80, touchMode ? 'Use' : 'E', 'shove the gate');
+}
+
 function drawVines(b) {
   var sx = b.x - cam;
   if (sx < -30 || sx > VW + 30) return;
@@ -2396,6 +2533,7 @@ function render() {
   drawPool(th);
   drawObstacles(th);
   drawBridge();
+  drawTutGate();
   drawTower();
   S.items.forEach(drawItem);
   barriers().forEach(function (b) { if (b.on && b.kind === 'vine') drawVines(b); });
@@ -2761,8 +2899,10 @@ function buzz(ms) { if (navigator.vibrate) { try { navigator.vibrate(ms); } catc
 function pause() {
   if (S.mode !== 'play') return;
   S.mode = 'paused';
-  showOverlay('<p class="kicker">Paused</p><h2>Catch your breath</h2><button class="primary" id="resume" type="button">Keep hunting</button>');
+  showOverlay('<p class="kicker">Paused</p><h2>Catch your breath</h2><button class="primary" id="resume" type="button">Keep hunting</button>' +
+    '<button class="tiny" id="tutagain" type="button">Replay the basics</button>');
   $('resume').addEventListener('click', resume);
+  $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
   $('resume').focus();
 }
 function resume() { if (S.mode !== 'paused') return; S.mode = 'play'; $('ov').hidden = true; last = performance.now(); }
@@ -2771,6 +2911,9 @@ function togglePause() { if (S.mode === 'play') pause(); else if (S.mode === 'pa
 // Click or tap anywhere on the game to attack.
 cv.addEventListener('pointerdown', function () { if (S.mode === 'play') attackEdge = true; });
 $('start').addEventListener('click', startGame);
+$('tutok').addEventListener('click', function () { if (TUT.on) { var st = TUT_STEPS[TUT.step]; if (st) st.pressed = true; } });
+$('tutskip').addEventListener('click', function () { if (TUT.on) tutEnd(); });
+$('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
 $('mute').addEventListener('click', function () {
   muted = !muted; this.textContent = muted ? 'Sound off' : 'Sound on'; this.setAttribute('aria-pressed', String(muted));
 });
