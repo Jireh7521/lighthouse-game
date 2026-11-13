@@ -52,6 +52,12 @@ npm run serve        # serve docs/ on http://127.0.0.1:8080 to play locally
 `npm test` needs no browser and no network: it boots the real bundle in a Node
 sandbox. See [TESTING.md](TESTING.md).
 
+## Continuous integration
+
+`ci/github-workflow.yml` runs `npm run check` and the gameplay tests on every
+push to `main` and every pull request. It needs one manual step to activate:
+see [ci/README.md](ci/README.md).
+
 ## Publishing
 
 GitHub Pages serves this repository from `main` / `docs`. To publish a change:
