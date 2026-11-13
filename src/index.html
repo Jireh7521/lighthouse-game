@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07110e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
+<title>Lighthouse Hunter</title>
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A side-scrolling jungle action game. Run, jump and throw spears, find a rope and a lantern, beat the Storm Panther and light the beacon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=Lilita+One&display=swap">
+<!--CSS-->
+
+<main class="wrap" id="wrap">
+  <div class="bar">
+    <h1 class="mark">Lighthouse Hunter</h1>
+    <div class="bar-actions">
+      <button class="ghost" id="flip" type="button" aria-pressed="false" hidden title="Turn the game into landscape">Rotate</button>
+      <button class="ghost" id="full" type="button" aria-pressed="false">Full screen</button>
+      <button class="ghost" id="mute" type="button" aria-pressed="false">Sound on</button>
+      <button class="ghost" id="setbtn" type="button" aria-haspopup="dialog">Settings</button>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="cv" role="img" aria-label="Side-scrolling jungle action game"></canvas>
+    <div class="hud" id="hud">
+      <div>
+        <div class="hearts" id="hearts" role="img" aria-label="Health"></div>
+        <div class="food" id="food" role="button" tabindex="0" aria-expanded="false" aria-controls="hcard" title="What hunger does"><span>Hunger</span><span class="bar2"><i id="foodfill"></i></span></div>
+        <div class="track" id="track" hidden>
+          <button class="thead" id="thead" type="button" aria-expanded="false" aria-controls="tlist">
+            <span>Objective <b id="tcount">0/5</b></span>
+            <svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 2l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <ol class="tlist" id="tlist">
+            <li data-k="food"><i></i><span></span></li>
+            <li data-k="rope"><i></i><span></span></li>
+            <li data-k="cave"><i></i><span></span></li>
+            <li data-k="lantern"><i></i><span></span></li>
+            <li data-k="lh"><i></i><span></span></li>
+          </ol>
+          <p class="thint" id="thint"></p>
+        </div>
+      </div>
+      <div class="right">
+        <div class="score" id="score">0</div>
+        <div class="clock" id="clock"></div>
+        <div class="pack">
+          <span class="slot" id="slot-rope"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="10" cy="11" rx="7" ry="4.5"/><ellipse cx="10" cy="10" rx="3.5" ry="2"/><path d="M16 13c1 1 2 1 3 2"/></svg>Rope</span>
+          <span class="slot sun" id="slot-sun" title="Sunstones found"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2l6 5-2.6 9H6.6L4 7z"/><path d="M10 2v14M4 7h12" stroke-width="1.3" opacity=".7"/></svg><b id="sunnum">0/5</b></span>
+          <span class="slot" id="slot-lantern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4q3-3 6 0"/><rect x="5.5" y="5" width="9" height="11" rx="2"/><path d="M8 16v2h4v-2M10 8v5"/></svg>Lantern</span>
+        </div>
+        <div class="route" id="route" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="zone" id="zone"></div>
+      </div>
+    </div>
+    <div class="hcard" id="hcard" hidden>
+      <p><b>Hunger</b> drains as you run.</p>
+      <ul>
+        <li><b>Above 60</b> you mend a heart every few seconds.</li>
+        <li><b>25 to 60</b> nothing changes: you are steady.</li>
+        <li><b>Below 25</b> no healing, and your legs get heavy.</li>
+        <li><b>At 0</b> you lose a heart every 9 seconds.</li>
+      </ul>
+      <p>Fruit from the trees fills it. The spring in the cave fills and heals in one go.</p>
+    </div>
+    <div class="settings" id="set" hidden>
+      <div class="scard" role="dialog" aria-modal="true" aria-labelledby="settitle">
+        <div class="shead">
+          <h2 id="settitle">Settings</h2>
+          <button class="sx" id="setclose" type="button" aria-label="Close settings">Close</button>
+        </div>
+        <div class="sbody">
+          <section class="sblock">
+            <div class="srow"><label for="volV">Volume</label><b class="sval" id="volN">80</b></div>
+            <input class="srng" id="volV" type="range" min="0" max="100" step="5" value="80" aria-describedby="volN">
+          </section>
+          <section class="sblock">
+            <div class="srow"><label for="musV">Music</label><button class="sw" id="musT" type="button" aria-pressed="true">On</button></div>
+            <input class="srng" id="musV" type="range" min="0" max="100" step="5" value="65">
+          </section>
+          <section class="sblock">
+            <div class="srow"><label for="sfxV">Sound effects</label><button class="sw" id="sfxT" type="button" aria-pressed="true">On</button></div>
+            <input class="srng" id="sfxV" type="range" min="0" max="100" step="5" value="85">
+          </section>
+          <section class="sblock">
+            <span class="slab" id="dlab">Difficulty</span>
+            <div class="seg" role="group" aria-labelledby="dlab">
+              <button type="button" data-diff="easy">Gentle</button>
+              <button type="button" data-diff="normal" class="on">Normal</button>
+              <button type="button" data-diff="hard">Hard</button>
+            </div>
+            <p class="snote" id="dnote">The island as it was built.</p>
+          </section>
+          <section class="sblock">
+            <span class="slab" id="mlab">Motion</span>
+            <div class="seg" role="group" aria-labelledby="mlab">
+              <button type="button" data-motion="auto">Match device</button>
+              <button type="button" data-motion="reduced">Reduced</button>
+              <button type="button" data-motion="full">Full</button>
+            </div>
+            <p class="snote">Reduced motion turns off screen shake, drifting dust and light flicker.</p>
+          </section>
+          <section class="sblock">
+            <span class="slab">Controls</span>
+            <ul class="keys">
+              <li><b>Keyboard</b> arrows or A D to run, Space jump, X attack, E use, P pause, M mute</li>
+              <li><b>Touch</b> slide the stick on the left to run, tap the buttons on the right. Tap the screen to attack.</li>
+              <li><b>Gamepad</b> left stick to run, A jump, X strike, B use, Start pause</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="ov hero" id="ov">
+      <div class="card">
+        <p class="kicker">Mystery Island</p>
+        <h1>Lighthouse Hunter</h1>
+        <p class="lede">A storm wrecked your ship. Hunt your way through the jungle and the cave, find a rope and a lantern, beat the Storm Panther and light the beacon.</p>
+        <div class="boardwrap" id="boardwrap"><p class="kicker">Fastest runs</p><div id="board-title"><p class="none">Loading the board...</p></div></div>
+        <p class="note" id="yourbest"></p>
+        <button class="primary" id="start" type="button">Start hunting</button>
+        <p class="how">Move <b>arrows</b> or <b>A D</b> &nbsp; Jump <b>Space</b> &nbsp; Attack <b>X</b> or click &nbsp; Use rope <b>E</b> &nbsp; Pause <b>P</b></p>
+        <button class="tiny" id="tutagain" type="button" hidden>Replay the basics</button>
+        <button class="tiny" id="titleset" type="button">Settings and controls</button>
+      </div>
+    </div>
+    <div class="tut" id="tut" hidden>
+      <p class="tutk" id="tutk"></p>
+      <b id="tutT"></b>
+      <p id="tutX"></p>
+      <div class="tutbtns">
+        <button class="ok" id="tutok" type="button" hidden>Got it</button>
+        <button id="tutskip" type="button">Skip</button>
+      </div>
+    </div>
+    <div class="controls" id="ctl" hidden>
+      <div class="pad">
+        <div class="stick" id="stick" role="slider" aria-label="Walk" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0" tabindex="-1">
+          <div class="knob" id="knob"></div>
+        </div>
+      </div>
+      <div class="pad">
+        <button id="b-use" class="use" type="button" aria-label="Use the rope">Use</button>
+        <button id="b-throw" class="fire" type="button" aria-label="Attack">Attack</button>
+        <button id="b-jump" type="button" aria-label="Jump">Jump</button>
+      </div>
+    </div>
+  </div>
+  <p class="keys" id="keys">Arrows or <b>A D</b> run &middot; <b>Space</b> jump &middot; <b>X</b> or click attack (stab close, throw far) &middot; land on enemies to stomp &middot; <b>E</b> use rope or lantern &middot; <b>P</b> pause &middot; controller: left stick, <b>A</b> jump, <b>X</b> strike, <b>B</b> use, <b>Start</b> pause</p>
+</main>
+<!--JS-->
+
+</body>
+</html>

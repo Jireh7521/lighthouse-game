@@ -1,0 +1,17 @@
+{
+  "name": "lighthouse-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lighthouse Hunter - a hand-painted side-scrolling jungle action game",
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node tools/build.mjs --check",
+    "serve": "node tools/serve.mjs",
+    "test": "node tools/build.mjs --check && node tests/run.mjs"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20"
+  }
+}
