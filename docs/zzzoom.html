@@ -1,0 +1,20 @@
+<!doctype html><meta charset=utf-8><title>zoom</title>
+<body style="margin:0;background:#000;overflow:hidden">
+<div id="h" style="position:fixed;z-index:9;left:0;top:0;background:#000;color:#0f0;font:700 13px monospace;padding:4px"></div>
+<iframe id="f" src="zzcp.html" style="position:absolute;left:0;top:26px;width:1000px;height:562px;border:0;transform:scale(1.72);transform-origin:0 0"></iframe>
+<script>
+var f = document.getElementById('f'), h = document.getElementById('h');
+function set(mode) {
+  var w = f.contentWindow, L = w.__LH; if (!L) return;
+  var S = L.S;
+  S.mode = 'play';
+  w.document.getElementById('ov').hidden = true;
+  if (mode === 'unlit') { S.cp = 60; S.cpI = 0; S.cpT = 3; S.p.x = 1300; S.cam = 900; }
+  else { S.cp = 1420; S.cpI = 1; S.cpT = 0.25; S.p.x = 1500; S.cam = 1150; }
+  S.p.y = 296; S.p.vy = 0; S.p.hp = 5;
+  h.textContent = 'mode=' + mode + ' cpI=' + S.cpI + ' cpT=' + S.cpT.toFixed(2);
+}
+addEventListener('keydown', function (e) { if (e.key === '1') set('unlit'); if (e.key === '2') set('lit'); });
+setTimeout(function () { set(location.search.indexOf('lit=1') > 0 ? 'lit' : 'unlit'); }, 2500);
+setTimeout(function () { set(location.search.indexOf('lit=1') > 0 ? 'lit' : 'unlit'); }, 5000);
+</script>
