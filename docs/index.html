@@ -1885,88 +1885,77 @@ function drawHunter() {
   ctx.globalAlpha = 1;
 }
 
+// ------------------------------------------------ painted enemies
+// Each creature is one or two painted poses, sized to its collision box and
+// anchored on its feet so state changes never shift it off the ground.
+var ENEMY_META = {"crab1":{"w":30.0,"h":22.0,"dx":-15.0,"dy":-22.0},"crab2":{"w":28.5,"h":22.0,"dx":-14.25,"dy":-22.0},"snake1":{"w":29.0,"h":26.0,"dx":-14.5,"dy":-26.0},"bat1":{"w":28.0,"h":26.0,"dx":-14.0,"dy":-26.0},"bat2":{"w":19.5,"h":26.0,"dx":-9.75,"dy":-26.0},"boar1":{"w":44.5,"h":34.0,"dx":-22.25,"dy":-34.0},"boar2":{"w":54.0,"h":34.0,"dx":-27.0,"dy":-34.0},"panther1":{"w":58.5,"h":34.0,"dx":-29.25,"dy":-34.0},"panther2":{"w":72.0,"h":34.0,"dx":-36.0,"dy":-34.0},"boss1":{"w":82.0,"h":64.0,"dx":-41.0,"dy":-64.0},"boss2":{"w":86.0,"h":64.0,"dx":-43.0,"dy":-64.0}};
+var ENEMY_SPR = {};
+(function loadEnemies() {
+  for (var k in ENEMY_META) (function (k) {
+    var im = new Image(), m = ENEMY_META[k];
+    var o = { img: im, ready: false, w: m.w, h: m.h, dx: m.dx, dy: m.dy };
+    ENEMY_SPR[k] = o;
+    im.onload = function () { o.ready = im.naturalWidth > 0; };
+    im.src = 'art/' + k + '.webp';
+  })(k);
+})();
+function enemyPose(e, t) {
+  if (e.type === 'crab') return (Math.floor(t * 9) % 2) ? 'crab2' : 'crab1';
+  if (e.type === 'snake') return 'snake1';
+  if (e.type === 'bat') return Math.sin(t * 19) > 0 ? 'bat1' : 'bat2';
+  if (e.type === 'boar') return (e.state === 'charge') ? 'boar2' : 'boar1';
+  if (e.type === 'panther') return e.state === 'leap' ? 'panther2' : 'panther1';
+  if (e.type === 'boss') return e.state === 'leap' ? 'boss2' : 'boss1';
+  return 'crab1';
+}
+
 function drawEnemy(e) {
   var sx = e.x - cam;
-  if (sx < -120 || sx > VW + 120) return;
+  if (sx < -140 || sx > VW + 140) return;
   var fade = e.dying ? Math.max(0, 1 - e.dying / 0.45) : 1;
   ctx.save();
   ctx.globalAlpha = fade;
   ctx.translate(sx, e.y);
-  if (e.dying) { ctx.rotate(e.dying * 4 * e.dir); ctx.translate(0, e.dying * 20); }
-  var dir = e.dir || 1;
-  if (e.type === 'boar' && e.state === 'charge') dir = e.dir;
-  ctx.scale(dir, 1);
+  if (e.dying) { ctx.rotate(e.dying * 4 * (e.dir || 1)); ctx.translate(0, e.dying * 20); }
+  ctx.scale(e.dir || 1, 1);
   if (e.hurt > 0 && 'filter' in ctx) ctx.filter = 'brightness(2.6)';
-  var t = e.t;
-  if (e.type === 'crab') {
-    var w = Math.sin(t * 12) * 2;
-    ctx.strokeStyle = '#a63c26'; ctx.lineWidth = 2;
-    for (var i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i * 6, -7); ctx.lineTo(i * 10 + w * i, -1); ctx.moveTo(i * 6, -7); ctx.lineTo(i * 10 - w * i, -1); ctx.stroke(); }
-    ell(0, -9, 13, 8, '#d9573b'); ell(0, -11, 8, 4, '#ec7a5c');
-    ell(14, -14 + Math.sin(t * 6) * 1.6, 5, 4, '#d9573b'); ell(-14, -14 - Math.sin(t * 6) * 1.6, 5, 4, '#d9573b');
-    ctx.fillStyle = '#fff'; ctx.fillRect(-5, -19, 3, 5); ctx.fillRect(3, -19, 3, 5); ctx.fillStyle = '#000'; ctx.fillRect(-4, -18, 1.6, 2.4); ctx.fillRect(4, -18, 1.6, 2.4);
-  } else if (e.type === 'snake') {
-    ctx.lineCap = 'round';
-    for (var s = 11; s >= 0; s--) {
-      var x = -s * 3.2, y = -5 + Math.sin(t * 6 + s * 0.8) * 3.2;
-      ctx.strokeStyle = s % 2 ? '#2f8a3c' : '#3fa34a'; ctx.lineWidth = 8 - s * 0.35;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 3.2, -5 + Math.sin(t * 6 + (s + 1) * 0.8) * 3.2); ctx.stroke();
-    }
-    ell(7, -8, 7, 5, '#3fa34a'); ctx.fillStyle = '#fff04a'; ctx.fillRect(8, -11, 2.4, 3); ctx.fillStyle = '#000'; ctx.fillRect(9, -10, 1, 2);
-    if (Math.sin(t * 9) > 0.2) { ctx.strokeStyle = '#d63a3a'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(13, -7); ctx.lineTo(19, -7); ctx.lineTo(21, -9); ctx.moveTo(19, -7); ctx.lineTo(21, -5); ctx.stroke(); }
-  } else if (e.type === 'boar') {
-    var ph = e.state === 'charge' ? Math.sin(t * 24) * 7 : Math.sin(t * 8) * 3;
-    ctx.strokeStyle = '#3a2517'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-12, -12); ctx.lineTo(-12 + ph, -1); ctx.moveTo(-6, -12); ctx.lineTo(-6 - ph, -1); ctx.moveTo(10, -12); ctx.lineTo(10 + ph, -1); ctx.moveTo(16, -12); ctx.lineTo(16 - ph, -1); ctx.stroke();
-    var lean = e.state === 'wind' ? 3 : 0;
-    ell(0, -19 + lean, 23, 13, '#5a3b2a'); ell(-2, -23 + lean, 18, 7, '#6b4630');
-    ctx.fillStyle = '#2f1c10'; for (var m = -4; m < 5; m++) { ctx.beginPath(); ctx.moveTo(m * 4 - 2, -30 + lean + Math.abs(m)); ctx.lineTo(m * 4, -36 + lean + Math.abs(m)); ctx.lineTo(m * 4 + 2, -30 + lean + Math.abs(m)); ctx.fill(); }
-    ell(22, -16 + lean, 10, 8, '#6b4630'); ell(30, -13 + lean, 5, 4, '#8a6048');
-    ctx.fillStyle = '#f4efe0'; ctx.beginPath(); ctx.moveTo(26, -11 + lean); ctx.lineTo(34, -17 + lean); ctx.lineTo(30, -9 + lean); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = e.state === 'wind' || e.state === 'charge' ? '#ff4a2e' : '#111'; ctx.fillRect(23, -20 + lean, 3, 3);
-    ell(16, -27 + lean, 3, 5, '#4a2e1e', 0.3);
-  } else if (e.type === 'bat') {
-    var f = Math.sin(t * 20);
-    ctx.fillStyle = '#2d2640';
-    ctx.beginPath(); ctx.moveTo(0, -8); ctx.quadraticCurveTo(12, -8 - 12 * f, 22, -4 - 6 * f); ctx.quadraticCurveTo(12, -4, 0, -2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(0, -8); ctx.quadraticCurveTo(-12, -8 - 12 * f, -22, -4 - 6 * f); ctx.quadraticCurveTo(-12, -4, 0, -2); ctx.fill();
-    ell(0, -6, 5, 6, '#3d3358'); ctx.fillStyle = '#ff5a4a'; ctx.fillRect(-3, -9, 2, 2); ctx.fillRect(1, -9, 2, 2);
-    ctx.fillStyle = '#3d3358'; ctx.beginPath(); ctx.moveTo(-4, -11); ctx.lineTo(-3, -16); ctx.lineTo(-1, -11); ctx.moveTo(1, -11); ctx.lineTo(3, -16); ctx.lineTo(4, -11); ctx.fill();
-  } else if (e.type === 'panther' || e.type === 'boss') {
-    var big = e.type === 'boss', k = big ? 1.65 : 1;
-    ctx.scale(k, k);
-    var crouch = e.state === 'crouch' ? 6 : 0, stretch = e.state === 'leap' ? 1.12 : 1;
-    var body = big ? '#171326' : '#1b1822', hi = big ? '#2d2650' : '#2d2a38';
-    var run = e.state === 'stalk' || e.state === 'patrol' ? Math.sin(t * 9) * 5 : 0;
-    ctx.strokeStyle = body; ctx.lineWidth = 6; ctx.lineCap = 'round';
-    var air = e.state === 'leap';
-    ctx.beginPath();
-    ctx.moveTo(-15, -14 + crouch); ctx.lineTo(air ? -24 : -15 + run, air ? -6 : -1);
-    ctx.moveTo(-8, -14 + crouch); ctx.lineTo(air ? -16 : -8 - run, air ? -4 : -1);
-    ctx.moveTo(14, -14 + crouch); ctx.lineTo(air ? 26 : 14 + run, air ? -8 : -1);
-    ctx.moveTo(20, -14 + crouch); ctx.lineTo(air ? 30 : 20 - run, air ? -4 : -1);
-    ctx.stroke();
-    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-22, -20 + crouch); ctx.quadraticCurveTo(-34, -30 + Math.sin(t * 4) * 6, -36, -18 + Math.sin(t * 4) * 8); ctx.stroke();
-    ell(0, -19 + crouch, 25 * stretch, 10, body); ell(0, -23 + crouch, 19, 5, hi);
-    ell(26, -23 + crouch * 0.7, 9, 8, body);
-    ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(22, -29 + crouch * 0.7); ctx.lineTo(24, -36 + crouch * 0.7); ctx.lineTo(28, -29 + crouch * 0.7); ctx.fill();
-    var open = e.state === 'sleep' ? 0.5 : 3;
-    ctx.fillStyle = big ? '#ff4a6a' : '#ffd23a'; ctx.fillRect(28, -26 + crouch * 0.7, 4, open);
-    if (e.state === 'crouch' || e.state === 'leap') { ctx.fillStyle = '#fff'; ctx.fillRect(31, -19 + crouch * 0.7, 1.6, 3); ctx.fillRect(34, -19 + crouch * 0.7, 1.6, 3); }
-    if (big) { ctx.strokeStyle = '#6a5ab0'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-6, -27); ctx.lineTo(0, -18); ctx.moveTo(6, -27); ctx.lineTo(12, -19); ctx.stroke(); }
+  var t = e.t, name = enemyPose(e, t), s = ENEMY_SPR[name];
+
+  // the boss throws its own storm light
+  if (e.type === 'boss') {
+    var rage = e.hp <= e.maxhp / 2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    var bg = ctx.createRadialGradient(0, -30, 4, 0, -30, 62);
+    bg.addColorStop(0, 'rgba(' + (rage ? '190,110,255' : '130,90,240') + ',' + (rage ? 0.34 : 0.2) + ')');
+    bg.addColorStop(1, 'rgba(120,80,220,0)');
+    ctx.fillStyle = bg; ctx.fillRect(-70, -96, 140, 100);
+    ctx.restore();
+  }
+
+  if (s && s.ready) {
+    // a little life: bats beat, everything else breathes
+    var amp = e.type === 'bat' ? 2.6 : (e.type === 'boss' || e.type === 'panther' ? 0.6 : 0.9);
+    var spd = e.type === 'bat' ? 9 : 2.6;
+    var bob = Math.sin(t * spd + e.x * 0.05) * amp;
+    var lift = (e.state === 'leap' && (e.type === 'panther' || e.type === 'boss')) ? -6 : 0;
+    ctx.drawImage(s.img, s.dx, s.dy + bob + lift, s.w, s.h);
+  } else {
+    ctx.fillStyle = e.type === 'boss' ? '#3a2358' : '#7a3a2a';
+    rrect(-e.w / 2, -e.h, e.w, e.h, 5); ctx.fill();
+  }
+  if (e.type === 'boss' && e.hp <= e.maxhp / 2 && s && s.ready) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(200,140,255,' + (0.2 + 0.2 * Math.abs(Math.sin(t * 7))) + ')';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(-26, -50); ctx.lineTo(-14, -44); ctx.lineTo(-22, -34); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(18, -48); ctx.lineTo(26, -40); ctx.lineTo(16, -32); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
   }
   if ('filter' in ctx) ctx.filter = 'none';
   ctx.restore();
-  ctx.globalAlpha = 1;
-  // boss health bar
-  if (e.type === 'boss' && !e.dying && e.state !== 'sleep') {
-    var bw = 120, bx = sx - bw / 2, by = e.y - 90;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx - 1, by - 1, bw + 2, 8);
-    ctx.fillStyle = '#e04a5a'; ctx.fillRect(bx, by, bw * Math.max(0, e.hp) / e.maxhp, 6);
-  }
 }
 
-// The rope flying across the gap while the hunter ties it on.
 function drawTie() {
   if (!S.tie) return;
   var p = S.p, t = S.tie.t;
