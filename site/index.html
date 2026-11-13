@@ -286,6 +286,21 @@ function rgb(c, a) { var s = (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0); r
 // k > 0 lightens towards white, k < 0 darkens towards black. Used for volume shading.
 function tint(c, k) { return k >= 0 ? rgb(mixc(c, [255, 255, 255], k)) : rgb(mixc(c, [0, 0, 0], -k)); }
 // A soft band of coloured air, laid over the far layers so distance reads as depth.
+var grainPat = null;
+// A fixed film-grain texture. Laid over the whole frame it stops the painted
+// backdrops and the code-drawn props from reading as two different media.
+function grainTexture() {
+  if (grainPat) return grainPat;
+  var s = document.createElement('canvas'); s.width = s.height = 140;
+  var g = s.getContext('2d'), img = g.createImageData(140, 140), d = img.data;
+  for (var i = 0; i < d.length; i += 4) {
+    var v = 108 + Math.random() * 74;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 30;
+  }
+  g.putImageData(img, 0, 0);
+  grainPat = ctx.createPattern(s, 'repeat');
+  return grainPat;
+}
 var softDot = null;
 function softDotSprite() {
   if (softDot) return softDot;
@@ -1641,13 +1656,36 @@ function drawPlatforms(th) {
   PLATS.forEach(function (pl) {
     var sx = pl.x - cam;
     if (sx > VW + 10 || sx + pl.w < -10) return;
-    ctx.fillStyle = rgb(mixc(th.gB, [0, 0, 0], 0.25)); rrect(sx, pl.y + 4, pl.w, 14, 6); ctx.fill();
-    ctx.fillStyle = rgb(th.gT); rrect(sx - 2, pl.y, pl.w + 4, 8, 4); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(sx + 2, pl.y + 1, pl.w - 4, 2);
-    ctx.strokeStyle = rgb(mixc(th.gB, [0, 0, 0], 0.5)); ctx.lineWidth = 1;
-    for (var i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(sx + (pl.w / 4) * i, pl.y + 9); ctx.lineTo(sx + (pl.w / 4) * i + 3, pl.y + 17); ctx.stroke(); }
+    // soft contact shadow so the ledge sits in the painting
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath();
+    ctx.ellipse(sx + pl.w / 2, pl.y + 20, pl.w * 0.56, 6, 0, 0, Math.PI * 2); ctx.fill();
+    // body: warm light on top, cool weight underneath
+    var bg = ctx.createLinearGradient(0, pl.y, 0, pl.y + 18);
+    bg.addColorStop(0, rgb(th.gT)); bg.addColorStop(0.45, rgb(mixc(th.gB, th.gT, 0.35))); bg.addColorStop(1, rgb(mixc(th.gB, [0, 0, 0], 0.55)));
+    ctx.fillStyle = bg; rrect(sx - 2, pl.y, pl.w + 4, 17, 5); ctx.fill();
+    // lit cap
+    ctx.fillStyle = 'rgba(255,244,214,0.3)'; rrect(sx, pl.y + 0.6, pl.w, 3, 2); ctx.fill();
+    // brush strokes for stone grain
+    ctx.strokeStyle = rgbaInk(th, 0.16); ctx.lineWidth = 1.1;
+    for (var i = 1; i < 4; i++) {
+      var bx = sx + (pl.w / 4) * i;
+      ctx.beginPath(); ctx.moveTo(bx, pl.y + 3); ctx.quadraticCurveTo(bx + 2.5, pl.y + 9, bx + 1, pl.y + 15); ctx.stroke();
+    }
+    // warm rim on the sunward edge
+    ctx.strokeStyle = 'rgba(255,206,150,0.34)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(sx + 1, pl.y + 4); ctx.lineTo(sx + 1, pl.y + 13); ctx.stroke();
+    // grass tufts when the zone has them
+    if (th.grass > 0.25) {
+      ctx.strokeStyle = rgb(mixc(th.gT, [20, 90, 40], 0.45)); ctx.lineWidth = 1.4;
+      for (var k = 0; k < 4; k++) {
+        var gx = sx + 8 + k * (pl.w - 16) / 3 + (rnd(pl.x + k) - 0.5) * 6;
+        if (rnd(pl.x + k * 7) < 0.45) continue;
+        ctx.beginPath(); ctx.moveTo(gx, pl.y + 1); ctx.lineTo(gx - 1.5, pl.y - 6 - rnd(k + pl.x) * 4); ctx.stroke();
+      }
+    }
   });
 }
+function rgbaInk(th, a) { return rgb(mixc(th.gB, [0, 0, 0], 0.7), a); }
 function drawBridge() {
   var t = S.bridgeT;
   var sx0 = CHASM.x - cam, w = CHASM.w;
@@ -2197,6 +2235,11 @@ function render() {
     grade.addColorStop(0.55, 'rgba(255,196,130,0.045)');
     grade.addColorStop(1, 'rgba(26,10,46,0.11)');
     ctx.fillStyle = grade; ctx.fillRect(0, 0, VW, H);
+  }
+  // fixed film grain, laid over backdrop and props alike
+  if (!gfxLite) {
+    ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.55;
+    ctx.fillStyle = grainTexture(); ctx.fillRect(0, 0, VW, H); ctx.restore();
   }
   // vignette and hit flash
   var vg = ctx.createRadialGradient(VW / 2, H / 2, H * 0.55, VW / 2, H / 2, VW * 0.65);
