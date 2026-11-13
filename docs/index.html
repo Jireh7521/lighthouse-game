@@ -2804,7 +2804,8 @@ if (window.__LH_TEST) {
     step: function (dt) { step(dt); },
     start: startGame,
     setKeys: function (o) { Object.keys(o).forEach(function (k) { if (k === 'use') { if (o.use) useEdge = true; return; } if (k === 'jump' && o.jump && !keys.jump) jumpEdge = true; keys[k] = o[k]; }); },
-    solidAt: solidAt, PLATS: PLATS, PITS: PITS, constants: { GROUND: GROUND, WORLD: WORLD }, render: render, layout: layout, retry: retry
+    solidAt: solidAt, PLATS: PLATS, PITS: PITS, constants: { GROUND: GROUND, WORLD: WORLD }, render: render, layout: layout, retry: retry,
+    artOk: function () { return ART_OK.slice(); }, artW: function () { return ART.map(function (i) { return i.naturalWidth; }); }
   };
 }
 })();
