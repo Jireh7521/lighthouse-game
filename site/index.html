@@ -349,7 +349,7 @@ try { best = parseInt(localStorage.getItem('lighthouse-hunter-best') || '0', 10)
 function newState() {
   return {
     mode: 'title', time: 0, cam: 0, shake: 0, t: 0,
-    p: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, coy: 0, jbuf: 0, hp: 5, inv: 0, kb: 0, throwCd: 0, throwT: 0, stab: 0, anim: 0, rope: false, ropeUsed: false, lantern: false, lanternUsed: false, food: 100, starveT: 0, sq: 0, stepN: 0, bleedT: 0, heartT: 0 },
+    p: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, coy: 0, jbuf: 0, hp: 5, inv: 0, kb: 0, throwCd: 0, throwT: 0, stab: 0, anim: 0, rope: false, ropeUsed: false, lantern: false, lanternUsed: false, food: 100, starveT: 0, sq: 0, stepN: 0, ph: 0, bleedT: 0, heartT: 0 },
     enemies: [], spears: [], parts: [], items: [], floaters: [],
     score: 0, kills: 0, cp: 0, lastSafe: 60, safeTimer: 0, bridgeGrow: false, bridgeT: 0, tie: null,
     bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
@@ -934,7 +934,17 @@ function updatePlayer(dt) {
   var tired = p.food <= 0 ? 0.8 : (p.food < 25 ? 0.9 : 1);
   if (p.food < 25) toastOnce('hungry', 'You are getting hungry. Eat fruit from the trees.', 3400);
   if (p.food <= 0) { toastOnce('starving', 'You are starving. You move slower. Find fruit.', 3600); p.starveT += dt; if (p.starveT > 9 && p.hp > 1) { p.starveT = 0; p.hp -= 1; S.shake = 0.15; SFX.hurt(); floater(p.x, p.y - 60, 'starving', '#ffb4a4'); } } else p.starveT = 0;
-  if (p.kb > 0) { p.kb -= dt; p.vx *= 0.92; } else { p.vx = ax * RUN * tired * (p.hp <= 1 ? 0.92 : 1); if (ax) p.face = ax < 0 ? -1 : 1; }
+  if (p.kb > 0) { p.kb -= dt; p.vx *= 0.92; } else {
+    var tgt = ax * RUN * tired * (p.hp <= 1 ? 0.92 : 1);
+    var rate = (ax ? 1750 : 2500) * dt;
+    var dv = tgt - p.vx;
+    if (Math.abs(dv) <= rate) p.vx = tgt; else p.vx += dv > 0 ? rate : -rate;
+    if (ax) {
+      // hard turn at speed: boot heels skid a little
+      if (tgt * p.vx < 0 && Math.abs(p.vx) > 110 && p.onGround) burst(p.x + p.face * 4, p.y, 1, DUST[zoneIndex(p.x)], 95, 0.3);
+      p.face = ax < 0 ? -1 : 1;
+    }
+  }
   if (jumpEdge) { p.jbuf = 0.12; jumpEdge = false; buzz(8); }
   p.jbuf -= dt;
   p.coy -= dt;
@@ -993,8 +1003,8 @@ function updatePlayer(dt) {
   p.sq += (0 - p.sq) * Math.min(1, dt * 12);
   // footsteps with dust
   if (Math.abs(p.vx) > 10 && p.onGround) {
-    var sn = Math.floor(p.anim * 14 / Math.PI);
-    if (sn !== p.stepN) { p.stepN = sn; SFX.step(zoneIndex(p.x)); if (sn % 2 === 0) burst(p.x - p.face * 6, p.y, 2, DUST[zoneIndex(p.x)], 36, 0.28); }
+    var sn = Math.floor(p.ph / Math.PI);
+    if (sn !== p.stepN) { p.stepN = sn; SFX.step(zoneIndex(p.x)); burst(p.x - p.face * 3, p.y, 2, DUST[zoneIndex(p.x)], 42, 0.3); }
   }
   // wounded: blood drips and a heartbeat
   if (p.hp <= 2) { p.bleedT -= dt; if (p.bleedT <= 0) { p.bleedT = 0.9; S.parts.push({ x: p.x + p.face * 4, y: p.y - 30, vx: 0, vy: 20, life: 0.5, max: 0.5, r: 1.6, col: '#a52a22' }); } }
@@ -1005,7 +1015,11 @@ function updatePlayer(dt) {
   if (p.stab > 0) p.stab -= dt;
   if (keys.throw_ || attackEdge) { attackEdge = false; attack(); }
   if (useEdge) { useEdge = false; interact(); }
-  if (Math.abs(p.vx) > 10 && p.onGround) p.anim += dt;
+  if (Math.abs(p.vx) > 10 && p.onGround) {
+    var sp = Math.min(1.2, Math.abs(p.vx) / RUN);
+    p.anim += dt;
+    p.ph = (p.ph + dt * Math.PI * 2 * (0.55 + 1.05 * sp));
+  }
 
   // fell into a pit or chasm
   if (p.y > H + 70) {
@@ -1807,7 +1821,7 @@ function shadowAt(x, y, w, a) {
 // ------------------------------------------------ painted hunter
 // Hand-painted poses, one texture each. Offsets place every pose on the same
 // feet line so swapping between them never makes the hunter jitter.
-var HUNTER_META = {"idle":{"w":20.5,"h":64.0,"dx":-12.38,"dy":-64.19},"run1":{"w":50.5,"h":61.5,"dx":-34.45,"dy":-63.94},"run2":{"w":51.5,"h":61.5,"dx":-35.36,"dy":-64.0},"jump":{"w":38.5,"h":56.5,"dx":-21.84,"dy":-63.09},"stab":{"w":60.0,"h":54.5,"dx":-38.24,"dy":-59.0}};
+var HUNTER_META = {"idle":{"w":20.5,"h":64.0,"dx":-12.38,"dy":-64.19},"run1":{"w":50.5,"h":61.5,"dx":-34.45,"dy":-63.94},"run2":{"w":51.5,"h":61.5,"dx":-35.36,"dy":-64.0},"jump":{"w":38.5,"h":56.5,"dx":-21.84,"dy":-63.09},"stab":{"w":60.0,"h":54.5,"dx":-38.24,"dy":-59.0},"run3":{"w":53.0,"h":61.5,"dx":-34.2,"dy":-64.0}};
 var HUNTER_SPR = {};
 (function loadHunter() {
   for (var k in HUNTER_META) (function (k) {
@@ -1821,7 +1835,7 @@ var HUNTER_SPR = {};
 function hunterPose(p, run) {
   if (p.stab > 0) return 'stab';
   if (!p.onGround) return 'jump';
-  if (run) return Math.sin(p.anim * 14) > 0 ? 'run1' : 'run2';
+  if (run) return ['run1', 'run2', 'run3', 'run2'][Math.floor(p.ph / (Math.PI / 2)) & 3];
   return 'idle';
 }
 function hunterFallback() {
@@ -1843,10 +1857,12 @@ function drawHunter() {
   var blink = p.inv > 0 && Math.floor(p.inv * 14) % 2 === 0;
   if (blink) ctx.globalAlpha = 0.35;
   var run = Math.abs(p.vx) > 10 && p.onGround;
-  var bob = run ? -Math.abs(Math.cos(p.anim * 14)) * 1.9 : Math.sin(S.t * 2.2) * 0.5;
-  var lean = run ? 0.05 : (p.vy < -50 ? -0.05 : (p.vy > 200 ? 0.06 : 0));
+  var ph = p.ph || 0, spd = Math.min(1, Math.abs(p.vx) / RUN);
+  var bob = run ? -Math.abs(Math.sin(ph)) * 3.1 : Math.sin(S.t * 2.2) * 0.5;
+  var lean = run ? 0.045 + 0.085 * spd + Math.sin(ph) * 0.012 : (p.vy < -50 ? -0.05 : (p.vy > 200 ? 0.06 : 0));
   ctx.save(); ctx.translate(p.x - cam, p.y); ctx.scale(p.face, 1);
-  ctx.scale(1 + p.sq * 0.55, 1 - p.sq);              // squash on landing, stretch on take-off
+  var contact = run ? Math.abs(Math.cos(ph)) * 0.055 : 0;   // dip as each foot plants
+  ctx.scale(1 + p.sq * 0.55 + contact * 0.5, 1 - p.sq - contact);
   ctx.translate(0, bob);
   ctx.rotate(lean);
 
@@ -1877,7 +1893,7 @@ function drawHunter() {
   } else if (p.throwT > 0) {
     ctx.save(); ctx.translate(14, -40); ctx.rotate(-0.5); drawSpearShape(46); ctx.restore();
   } else {
-    ctx.save(); ctx.translate(11, -31); ctx.rotate(-1.35 + (run ? Math.sin(p.anim * 14) * 0.06 : 0)); drawSpearShape(46); ctx.restore();
+    ctx.save(); ctx.translate(11, -31); ctx.rotate(-1.35 + (run ? Math.sin(ph) * 0.13 : 0)); drawSpearShape(46); ctx.restore();
   }
 
   // ---------------- lantern glow over the body
