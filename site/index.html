@@ -158,6 +158,21 @@ button { font: inherit; color: inherit; }
 .keys b { color: var(--fg); }
 .slot.done { border-style: solid; border-color: var(--leaf); color: var(--leaf); background: rgba(6, 56, 40, 0.72); }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .pad .use.ready { animation: none; } }
+
+.clock { margin-top: 2px; font: 400 clamp(14px, 3.2vw, 19px)/1 var(--display); font-variant-numeric: tabular-nums; color: var(--fg); opacity: 0.92; text-align: right; }
+.clock:empty { display: none; }
+.record { margin: 0; font: 700 12px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--lamp); }
+.note { margin: 0; font: 500 12px/1.4 var(--body); color: var(--mute); }
+.boardwrap { display: grid; gap: 5px; }
+.board { display: grid; gap: 3px; }
+.board .row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: baseline; font: 500 13px/1.5 var(--body); color: var(--fg); }
+.board .row.head { font: 700 10px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); }
+.board .row b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.board .row.me { color: var(--lamp); }
+.board .none { margin: 0; font: 500 12px/1.4 var(--body); color: var(--mute); }
+.namebar { display: flex; gap: 8px; flex-wrap: wrap; }
+.namebar input { flex: 1 1 140px; min-width: 0; min-height: 46px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--fg); font: 500 15px/1 var(--body); }
+.namebar input:focus-visible { outline: 2px solid var(--lamp); outline-offset: 1px; }
 </style>
 
 <main class="wrap" id="wrap">
@@ -175,6 +190,7 @@ button { font: inherit; color: inherit; }
       </div>
       <div class="right">
         <div class="score" id="score">0</div>
+        <div class="clock" id="clock"></div>
         <div class="pack">
           <span class="slot" id="slot-rope"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="10" cy="11" rx="7" ry="4.5"/><ellipse cx="10" cy="10" rx="3.5" ry="2"/><path d="M16 13c1 1 2 1 3 2"/></svg>Rope</span>
           <span class="slot" id="slot-lantern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4q3-3 6 0"/><rect x="5.5" y="5" width="9" height="11" rx="2"/><path d="M8 16v2h4v-2M10 8v5"/></svg>Lantern</span>
@@ -189,6 +205,8 @@ button { font: inherit; color: inherit; }
         <p class="kicker">Mystery Island</p>
         <h1>Lighthouse Hunter</h1>
         <p class="lede">A storm wrecked your ship. Hunt your way through the jungle and the cave, find a rope and a lantern, beat the Storm Panther and light the beacon.</p>
+        <div class="boardwrap" id="boardwrap"><p class="kicker">Fastest runs</p><div id="board-title"><p class="none">Loading the board...</p></div></div>
+        <p class="note" id="yourbest"></p>
         <button class="primary" id="start" type="button">Start hunting</button>
         <p class="how">Move <b>arrows</b> or <b>A D</b> &nbsp; Jump <b>Space</b> &nbsp; Attack <b>X</b> or click &nbsp; Use rope <b>E</b> &nbsp; Pause <b>P</b></p>
       </div>
@@ -346,7 +364,48 @@ function caveAmt(x) { return sm((x - 3560) / 160) * (1 - sm((x - 5160) / 160)); 
 var S, keys = { left: false, right: false, jump: false, throw_: false };
 var padAx = 0, stickAx = 0;   // gamepad stick and on-screen stick, -1..1
 var jumpEdge = false, attackEdge = false, useEdge = false, touchMode = false, muted = false, best = 0;
-try { best = parseInt(localStorage.getItem('lighthouse-hunter-best') || '0', 10) || 0; } catch (e) { best = 0; }
+// personal bests live on the device; the board itself is served by the backend function
+var LB_URL = 'https://superagent-ed4394ba.base44.app/functions/beaconBoard';
+var bestTime = 0, playerName = '', lbRows = null, winState = null;
+try {
+  best = parseInt(localStorage.getItem('lighthouse-hunter-best') || '0', 10) || 0;
+  bestTime = parseFloat(localStorage.getItem('lighthouse-hunter-best-time') || '0') || 0;
+  playerName = localStorage.getItem('lighthouse-hunter-name') || '';
+} catch (e) { best = 0; bestTime = 0; playerName = ''; }
+function fmtT(t) { t = Math.max(0, Math.round(t)); var m = Math.floor(t / 60), s = t % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+function escH(s) { return String(s).replace(/[<>&"]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]; }); }
+function boardHTML(mark) {
+  if (!lbRows) return '<p class="none">Loading the board...</p>';
+  if (!lbRows.length) return '<p class="none">No runs posted yet. Be the first to light the beacon.</p>';
+  var h = '<div class="board"><div class="row head"><span>#</span><span>Hunter</span><span>Time</span></div>';
+  for (var i = 0; i < lbRows.length && i < 8; i++) {
+    var r = lbRows[i], mine = mark && r.name === mark.name && Math.abs(r.time - mark.time) <= 1;
+    h += '<div class="row' + (mine ? ' me' : '') + '"><span>' + (i + 1) + '</span><span>' + escH(r.name) + '</span><b>' + fmtT(r.time) + '</b></div>';
+  }
+  return h + '</div>';
+}
+function lbPaint() {
+  var bt = $('board-title'); if (bt) bt.innerHTML = boardHTML(null);
+  var bw = $('boardwrap'); if (bw) bw.hidden = !lbRows || !lbRows.length;
+  var yb = $('yourbest');
+  if (yb) yb.textContent = bestTime ? 'Your best run: ' + fmtT(bestTime) + (best ? '  ·  best score ' + best : '') : '';
+}
+function lbGet(cb) {
+  try {
+    fetch(LB_URL, { method: 'GET', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.ok) lbRows = d.fastest || []; lbPaint(); if (cb) cb(); })
+      .catch(function () { lbRows = lbRows || []; if (cb) cb(); });
+  } catch (e) { if (cb) cb(); }
+}
+function lbPost(name, cb) {
+  try {
+    fetch(LB_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, time: Math.round(S.time), score: S.score, kills: S.kills }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.ok) { lbRows = d.fastest || []; } if (cb) cb(d); })
+      .catch(function () { if (cb) cb(null); });
+  } catch (e) { if (cb) cb(null); }
+}
 
 function newState() {
   return {
@@ -734,12 +793,13 @@ function objective() {
 function updateHud() {
   var p = S.p;
   var zi = zoneIndex(p.x);
-  var key = [p.hp, Math.round(p.food / 2), p.rope, p.ropeUsed, p.lantern, p.lanternUsed, S.score, zi, S.bossDead, S.bridgeGrow, S.mode].join('|');
+  var key = [p.hp, Math.round(p.food / 2), p.rope, p.ropeUsed, p.lantern, p.lanternUsed, S.score, zi, S.bossDead, S.bridgeGrow, S.mode, Math.floor(S.time)].join('|');
   if (key === hudCache) return;
   hudCache = key;
   for (var i = 0; i < 5; i++) heartsEl.children[i].classList.toggle('on', i < p.hp);
   heartsEl.setAttribute('aria-label', 'Health ' + p.hp + ' of 5');
   $('score').textContent = S.score;
+  $('clock').textContent = S.mode === 'title' ? '' : fmtT(S.time);
   $('foodfill').style.width = Math.max(0, Math.round(p.food)) + '%';
   $('food').classList.toggle('low', p.food < 25);
   $('slot-rope').classList.toggle('have', p.rope);
@@ -822,17 +882,49 @@ function finishWin() {
   S.score += bonus;
   var isBest = S.score > best;
   if (isBest) { best = S.score; try { localStorage.setItem('lighthouse-hunter-best', String(best)); } catch (e) { /* storage unavailable */ } }
+  var run = Math.round(S.time), prev = bestTime;
+  var faster = !prev || run < prev;
+  if (faster) { bestTime = run; try { localStorage.setItem('lighthouse-hunter-best-time', String(run)); } catch (e) { /* storage unavailable */ } }
   S.mode = 'won';
-  var m = Math.floor(S.time / 60), s = Math.floor(S.time % 60);
-  showOverlay('<p class="kicker">Rescued</p><h2>The beacon is lit</h2>' +
+  winState = { run: run, prev: prev, faster: faster, posted: false, rank: 0, err: false, posting: false };
+  drawWin();
+  lbGet(drawWin);
+}
+
+function drawWin() {
+  var w = winState;
+  var html = '<p class="kicker">Rescued</p><h2>The beacon is lit</h2>' +
     '<p class="lede">A boat sees the light and turns toward the island. You escaped.</p>' +
-    '<div class="stats"><div class="stat"><span>Score</span><b>' + S.score + '</b></div>' +
-    '<div class="stat"><span>Time</span><b>' + m + ':' + (s < 10 ? '0' : '') + s + '</b></div>' +
-    '<div class="stat"><span>Hunted</span><b>' + S.kills + '</b></div>' +
-    '<div class="stat"><span>Best</span><b>' + best + '</b></div></div>' +
-    '<button class="primary" id="again" type="button">Hunt again</button>');
+    '<div class="stats">' +
+      '<div class="stat"><span>Score</span><b>' + S.score + '</b></div>' +
+      '<div class="stat"><span>Time</span><b>' + fmtT(w.run) + '</b></div>' +
+      '<div class="stat"><span>Best time</span><b>' + (bestTime ? fmtT(bestTime) : '--') + '</b></div>' +
+      '<div class="stat"><span>Hunted</span><b>' + S.kills + '</b></div>' +
+      '<div class="stat"><span>Best score</span><b>' + best + '</b></div>' +
+    '</div>' +
+    (w.faster && w.prev ? '<p class="record">New record: ' + fmtT(w.prev - w.run) + ' faster than your best.</p>'
+      : (w.faster ? '<p class="record">First recorded time.</p>' : '')) +
+    '<div class="boardwrap"><p class="kicker">Fastest runs</p>' + boardHTML(w.posted ? { name: playerName, time: w.run } : null) + '</div>' +
+    (w.posted
+      ? '<p class="note">' + (w.rank ? 'You are #' + w.rank + ' on the board.' : 'Your time is posted.') + '</p>'
+      : '<div class="namebar"><input id="pname" maxlength="14" placeholder="Your name" value="' + escH(playerName) + '" aria-label="Name for the leaderboard"><button class="primary" id="post" type="button">' + (w.posting ? 'Posting...' : 'Post my time') + '</button></div>' +
+        (w.err ? '<p class="note">The board is unreachable right now. Your time is still saved on this device.</p>' : '')) +
+    '<button class="primary" id="again" type="button">Hunt again</button>';
+  showOverlay(html);
   $('again').addEventListener('click', startGame);
-  $('again').focus();
+  if ($('post')) $('post').addEventListener('click', function () {
+    var v = $('pname').value.replace(/\s+/g, ' ').trim().slice(0, 14) || 'Hunter';
+    playerName = v;
+    try { localStorage.setItem('lighthouse-hunter-name', v); } catch (e) { /* storage unavailable */ }
+    winState.posting = true; drawWin();
+    lbPost(v, function (d) {
+      winState.posting = false;
+      if (d && d.ok) { winState.posted = true; winState.rank = d.rank || 0; winState.err = false; }
+      else { winState.err = true; }
+      drawWin();
+    });
+  });
+  ($('post') || $('again')).focus();
 }
 
 function hurtPlayer(dir) {
@@ -2611,6 +2703,7 @@ spawnWorld();
 layout();
 updateHud();
 requestAnimationFrame(frame);
+lbGet();   // the board is finished loading long before anyone reaches the beacon
 
 // Test hook, only present when a test harness asks for it.
 if (window.__LH_TEST) {
