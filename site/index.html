@@ -897,9 +897,9 @@ function tutStored() { try { return localStorage.getItem(TUT_KEY) === '1'; } cat
 function tutStore() { try { localStorage.setItem(TUT_KEY, '1'); } catch (e) { /* private mode */ } }
 var TUT_STEPS = [
   { id: 'move', title: 'Walk', text: 'Hold right, or slide the stick, to walk along the shore.' },
-  { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump. You will need it to clear the boulder ahead.' },
   { id: 'grab', title: 'Collect', text: 'Walk into the mango to pick it up.' },
   { id: 'food', title: 'Hunger', text: 'That bar up top is your hunger. It drains as you run, and fruit fills it. Empty, it costs health.', ok: true },
+  { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump to leap. The boulder ahead has to be cleared.' },
   { id: 'fight', title: 'Fight', text: 'Press X or tap Attack to throw your spear. Land on a crab to stomp it.' },
   { id: 'use', title: 'Use', text: 'The driftwood gate is jammed. Stand by it, then press E or tap Use to shove it open.' }
 ];
@@ -925,7 +925,7 @@ function tutShow() {
   $('tutX').textContent = st.text;
   $('tutok').hidden = !st.ok;
   if (st.id === 'grab') {
-    var fx = clamp(S.p.x + 120, 160, TUT_GATE_X - 46);
+    var fx = clamp(S.p.x + 95, 150, TUT_GATE_X - 100);
     S.items.push({ type: 'fruit', x: fx, y: 280, got: false, tut: true });
   }
   SFX.pick();
