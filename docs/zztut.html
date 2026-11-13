@@ -898,9 +898,9 @@ function tutStored() { try { return localStorage.getItem(TUT_KEY) === '1'; } cat
 function tutStore() { try { localStorage.setItem(TUT_KEY, '1'); } catch (e) { /* private mode */ } }
 var TUT_STEPS = [
   { id: 'move', title: 'Walk', text: 'Hold right, or slide the stick, to walk along the shore.' },
-  { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump. You will need it to clear the boulder ahead.' },
   { id: 'grab', title: 'Collect', text: 'Walk into the mango to pick it up.' },
   { id: 'food', title: 'Hunger', text: 'That bar up top is your hunger. It drains as you run, and fruit fills it. Empty, it costs health.', ok: true },
+  { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump to leap. The boulder ahead has to be cleared.' },
   { id: 'fight', title: 'Fight', text: 'Press X or tap Attack to throw your spear. Land on a crab to stomp it.' },
   { id: 'use', title: 'Use', text: 'The driftwood gate is jammed. Stand by it, then press E or tap Use to shove it open.' }
 ];
@@ -926,7 +926,7 @@ function tutShow() {
   $('tutX').textContent = st.text;
   $('tutok').hidden = !st.ok;
   if (st.id === 'grab') {
-    var fx = clamp(S.p.x + 120, 160, TUT_GATE_X - 46);
+    var fx = clamp(S.p.x + 95, 150, TUT_GATE_X - 100);
     S.items.push({ type: 'fruit', x: fx, y: 280, got: false, tut: true });
   }
   SFX.pick();
@@ -2971,20 +2971,20 @@ window.addEventListener('load', function () {
   var L = window.__LH; if (!L) return;
   try { localStorage.removeItem('lh_tut_v1'); } catch (e) {}
   var log = [], bar = document.createElement('div');
-  bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#000;color:#0f0;font:700 13px monospace;padding:6px;line-height:1.45';
+  bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#000;color:#0f0;font:700 12px monospace;padding:6px;line-height:1.5';
   document.body.appendChild(bar);
   function put(s) { log.push(s); bar.textContent = log.join('  ||  ') + '  ERR:' + (window.__ERR.join(';') || 'none'); }
-  function stepName() { return document.getElementById('tutT').textContent + ' [' + document.getElementById('tutk').textContent + ']'; }
+  function sn() { return document.getElementById('tutT').textContent + ' [' + document.getElementById('tutk').textContent + ']'; }
   L.start();
-  setTimeout(function () { put('1 ' + stepName() + ' card=' + !document.getElementById('tut').hidden); }, 900);
-  if (location.search.indexOf('seq=1') < 0) return;
-  setTimeout(function () { L.setKeys({ right: true }); }, 1400);
-  setTimeout(function () { L.setKeys({ right: false }); put('2 after walking: ' + stepName() + ' x=' + L.S.p.x.toFixed(0)); L.setKeys({ jump: true }); }, 2500);
-  setTimeout(function () { L.setKeys({ jump: false }); put('3 after jump: ' + stepName()); L.setKeys({ right: true }); }, 3400);
-  setTimeout(function () { L.setKeys({ right: false }); put('4 after fruit: ' + stepName() + ' food=' + L.S.p.food.toFixed(0)); document.getElementById('tutok').click(); }, 5000);
-  setTimeout(function () { put('5 after got-it: ' + stepName()); L.setKeys({ throw_: true }); }, 5800);
-  setTimeout(function () { L.setKeys({ throw_: false }); put('6 after attack: ' + stepName()); L.S.p.x = 412; L.setKeys({ use: true }); }, 6500);
-  setTimeout(function () { L.setKeys({ use: false }); put('7 done: card hidden=' + document.getElementById('tut').hidden + ' gate=' + L.S.tutGate + ' clock=' + L.S.time.toFixed(1) + 's score=' + L.S.score); }, 7400);
+  setTimeout(function () { put('1 ' + sn()); L.setKeys({ right: true }); }, 900);
+  setTimeout(function () { put('2 ' + sn() + ' x=' + L.S.p.x.toFixed(0) + ' food=' + L.S.p.food.toFixed(0)); }, 2600);
+  setTimeout(function () { L.setKeys({ right: false }); put('3 ' + sn() + ' food=' + L.S.p.food.toFixed(0)); document.getElementById('tutok').click(); }, 3200);
+  setTimeout(function () { put('4 ' + sn()); L.setKeys({ right: true, jump: true }); }, 3900);
+  setTimeout(function () { L.setKeys({ jump: false }); put('5 ' + sn() + ' x=' + L.S.p.x.toFixed(0)); }, 4600);
+  setTimeout(function () { L.setKeys({ right: false }); put('6 ' + sn()); L.setKeys({ throw_: true }); }, 5400);
+  setTimeout(function () { L.setKeys({ throw_: false }); put('7 ' + sn()); L.S.p.x = 412; L.setKeys({ use: true }); }, 6100);
+  setTimeout(function () { L.setKeys({ use: false }); put('8 card hidden=' + document.getElementById('tut').hidden + ' gate=' + L.S.tutGate + ' clock=' + L.S.time.toFixed(1) + 's score=' + L.S.score + ' stored=' + localStorage.getItem('lh_tut_v1')); }, 7000);
+  setTimeout(function () { put('9 after 1.5s more: clock=' + L.S.time.toFixed(1) + 's'); }, 8600);
 });
 </script>
 </body>
