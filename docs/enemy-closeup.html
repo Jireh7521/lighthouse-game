@@ -2413,43 +2413,44 @@ if (window.__LH_TEST) {
 
 
 <script>
+window.__ERR = [];
+window.addEventListener('error', function (ev) { window.__ERR.push((ev.message||'') + ' @' + (ev.lineno||0)); });
 window.addEventListener('load', function () {
   var L = window.__LH; if (!L) return;
   L.start();
   setTimeout(function () {
     var S = L.S, cv = document.getElementById('cv');
     var types = ['crab','snake','bat','boar','panther','boss'];
-    var Z = 4, CW = 150, CH = 120;
+    var Z = 3, CW = 112, CH = 82, cols = 2;
     var out = document.createElement('canvas');
-    out.width = CW*Z*3; out.height = CH*Z*2;
+    out.width = CW*Z*cols; out.height = CH*Z*3;
     var o = out.getContext('2d');
     o.fillStyle = '#000'; o.fillRect(0,0,out.width,out.height);
     var info = [];
     types.forEach(function (tp, i) {
       var cam = 700;
       S.cam = cam;
-      S.p.x = cam + 40; S.p.y = 296; S.p.vy = 0; S.p.onGround = true; S.p.hp = 5; S.p.inv = 0; S.p.stab = 0; S.mode='play';
+      S.p.x = cam + 30; S.p.y = 296; S.p.vy = 0; S.p.onGround = true; S.p.hp = 5; S.p.inv = 0; S.p.stab = 0; S.mode='play'; S.p.face = 1;
       var sz = { crab:[30,16], snake:[36,16], bat:[26,16], boar:[48,28], panther:[56,28], boss:[90,46] }[tp];
-      var e = { type: tp, x: cam + 120, y: tp === 'bat' ? 250 : 296, homeY: 250, home: cam+120, range: 40,
+      var e = { type: tp, x: cam + 210, y: tp === 'bat' ? 250 : 296, homeY: 250, home: cam+210, range: 40,
                 dir: -1, hp: 3, maxhp: 3, w: sz[0], h: sz[1], vx:0, vy:0,
                 state: (tp==='boss'?'sleep':(tp==='panther'?'stalk':'patrol')), st:0, t: 1.3, hurt:0, dying:0, cool:0, air:false };
       S.enemies = [e];
-      L.render();
-      var k = cv.width / 640;   // device pixels per game unit
-      var sx = (e.x - cam) - 55, sy = (tp==='bat' ? e.y - 70 : e.y - 86);
-      sx = Math.max(0, Math.min(640 - 110, sx)); sy = Math.max(0, Math.min(360 - 80, sy));
-      o.drawImage(cv, sx*k, sy*k, 110*k, 80*k, (i%3)*CW*Z + 20, Math.floor(i/3)*CH*Z + 16, 110*Z, 80*Z);
-      o.strokeStyle = '#555'; o.lineWidth = 1;
-      o.strokeRect((i%3)*CW*Z + 20, Math.floor(i/3)*CH*Z + 16, 110*Z, 80*Z);
-      o.fillStyle = '#fff'; o.font = 'bold 18px monospace';
-      o.fillText(tp, (i%3)*CW*Z + 22, Math.floor(i/3)*CH*Z + 12);
-      info.push(tp + ' x' + Math.round(110*Z));
+      try { L.render(); } catch (err) { info.push(tp + ':ERR ' + err.message); }
+      var k = cv.width / 640;
+      var sx = (e.x - cam) - 56, sy = (e.y - 70);
+      o.drawImage(cv, sx*k, sy*k, 112*k, 82*k, (i%cols)*CW*Z, Math.floor(i/cols)*CH*Z, 112*Z, 82*Z);
+      o.strokeStyle = '#666'; o.lineWidth = 1;
+      o.strokeRect((i%cols)*CW*Z, Math.floor(i/cols)*CH*Z, 112*Z, 82*Z);
+      o.fillStyle = '#fff'; o.font = 'bold 15px monospace';
+      o.fillText(tp, (i%cols)*CW*Z + 6, Math.floor(i/cols)*CH*Z + 16);
     });
-    document.body.innerHTML = '<div style="color:#fff;font:12px monospace;padding:4px">' + info.join(' ') + '</div>';
+    document.body.innerHTML = '<div style="color:#fff;font:11px monospace;padding:4px">' +
+      (info.length ? info.join(' | ') : 'no errors') + ' || ' + (window.__ERR.join(' ; ') || 'no window errors') + '</div>';
     document.body.style.background = '#05070c'; document.body.style.margin='0';
     out.style.width = out.width + 'px';
     document.body.appendChild(out);
-  }, 1200);
+  }, 1400);
 });
 </script>
 </body>
