@@ -2203,11 +2203,13 @@ if (window.__LH_TEST) {
 
 <script>
 window.addEventListener('load', function () {
-  var L = window.__LH;
+  var L = window.__LH, m = /x=(\d+)/.exec(location.hash);
+  if (!L) return;
   try { L.start(); } catch (e) {}
-  var m = /x=(\d+)/.exec(location.hash);
-  if (m && L) { setTimeout(function () { L.S.p.x = +m[1]; }, 60); }
-  setTimeout(function () { if (L) L.S.p.x = +((/x=(\d+)/.exec(location.hash) || [0, 60])[1]); }, 400);
+  if (!m) return;
+  var x = +m[1];
+  var set = function () { if (!L.S) return; L.S.p.x = x; L.S.p.y = 250; L.S.cam = Math.max(0, x - 320); L.S.cp = x; L.S.lastSafe = x; L.S.p.hp = 5; };
+  set(); setTimeout(set, 120); setTimeout(set, 500); setTimeout(set, 1200);
 });
 </script>
 </body>
