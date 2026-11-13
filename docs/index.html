@@ -73,6 +73,36 @@ button { font: inherit; color: inherit; }
 .heart svg { display: block; width: 100%; height: auto; }
 .heart path { fill: rgba(0, 0, 0, 0.35); stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.5; }
 .heart.on path { fill: var(--heart); stroke: #ffd2c8; }
+.settings { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 10px;
+  background: rgba(4, 7, 16, 0.78); backdrop-filter: blur(3px); }
+.settings[hidden] { display: none; }
+.scard { width: 100%; max-width: 430px; max-height: 100%; overflow: auto; border-radius: 16px; padding: 14px 15px 16px;
+  background: linear-gradient(180deg, #0d1730, #0a1020); border: 1px solid rgba(246, 183, 60, 0.32);
+  box-shadow: 0 26px 60px -26px #000; color: #f2eedd; font-family: var(--body); }
+.shead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.shead h2 { margin: 0; font: 400 21px/1.1 var(--display); letter-spacing: -0.01em; }
+.sx { border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: #e9eefb;
+  border-radius: 999px; padding: 6px 12px; font: 700 11px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.sw { min-width: 52px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: #c9d3e6;
+  border-radius: 999px; padding: 5px 10px; font: 700 11px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.sw[aria-pressed="true"] { border-color: rgba(255, 205, 110, 0.7); background: rgba(246, 183, 60, 0.18); color: #ffd68a; }
+.sblock { padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.sblock:first-child { border-top: 0; }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.srow label, .slab { font: 700 11px/1 var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: #b9c4da; }
+.sval { font: 700 12px/1 var(--body); color: #ffd68a; font-variant-numeric: tabular-nums; }
+.srng { width: 100%; margin: 9px 0 2px; accent-color: #f6b73c; height: 22px; }
+.seg { display: flex; gap: 6px; margin: 9px 0 7px; }
+.seg button { flex: 1; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.05); color: #cfd8e8;
+  border-radius: 9px; padding: 8px 4px; font: 700 11px/1.15 var(--body); cursor: pointer; }
+.seg button.on { border-color: rgba(255, 205, 110, 0.8); background: rgba(246, 183, 60, 0.2); color: #ffe1a6; }
+.snote { margin: 0; font: 500 11px/1.45 var(--body); color: #93a0b9; }
+.keys { margin: 8px 0 0; padding-left: 15px; font: 500 11.5px/1.5 var(--body); color: #cfd8e8; }
+.keys li { margin: 3px 0; }
+.keys b { color: #ffd68a; }
+.settings + .toast { z-index: 21; }
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { html:not(.motion-full) *, html:not(.motion-full) *::before, html:not(.motion-full) *::after { animation: none !important; transition: none !important; } }
 .hcard { position: absolute; left: 8px; top: 58px; z-index: 5; width: 250px; max-width: 76%; padding: 9px 11px 10px; border-radius: 12px;
   background: rgba(6, 11, 26, 0.94); border: 1px solid rgba(246, 183, 60, 0.45); box-shadow: 0 12px 26px -16px #000;
   color: #f2eedd; font: 500 11px/1.45 var(--body); pointer-events: auto; }
@@ -270,6 +300,7 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
       <button class="ghost" id="flip" type="button" aria-pressed="false" hidden title="Turn the game into landscape">Rotate</button>
       <button class="ghost" id="full" type="button" aria-pressed="false">Full screen</button>
       <button class="ghost" id="mute" type="button" aria-pressed="false">Sound on</button>
+      <button class="ghost" id="setbtn" type="button" aria-haspopup="dialog">Settings</button>
     </div>
   </div>
   <div class="stage" id="stage">
@@ -315,6 +346,54 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
       </ul>
       <p>Fruit from the trees fills it. The spring in the cave fills and heals in one go.</p>
     </div>
+    <div class="settings" id="set" hidden>
+      <div class="scard" role="dialog" aria-modal="true" aria-labelledby="settitle">
+        <div class="shead">
+          <h2 id="settitle">Settings</h2>
+          <button class="sx" id="setclose" type="button" aria-label="Close settings">Close</button>
+        </div>
+        <div class="sbody">
+          <section class="sblock">
+            <div class="srow"><label for="volV">Volume</label><b class="sval" id="volN">80</b></div>
+            <input class="srng" id="volV" type="range" min="0" max="100" step="5" value="80" aria-describedby="volN">
+          </section>
+          <section class="sblock">
+            <div class="srow"><label for="musV">Music</label><button class="sw" id="musT" type="button" aria-pressed="true">On</button></div>
+            <input class="srng" id="musV" type="range" min="0" max="100" step="5" value="65">
+          </section>
+          <section class="sblock">
+            <div class="srow"><label for="sfxV">Sound effects</label><button class="sw" id="sfxT" type="button" aria-pressed="true">On</button></div>
+            <input class="srng" id="sfxV" type="range" min="0" max="100" step="5" value="85">
+          </section>
+          <section class="sblock">
+            <span class="slab" id="dlab">Difficulty</span>
+            <div class="seg" role="group" aria-labelledby="dlab">
+              <button type="button" data-diff="easy">Gentle</button>
+              <button type="button" data-diff="normal" class="on">Normal</button>
+              <button type="button" data-diff="hard">Hard</button>
+            </div>
+            <p class="snote" id="dnote">The island as it was built.</p>
+          </section>
+          <section class="sblock">
+            <span class="slab" id="mlab">Motion</span>
+            <div class="seg" role="group" aria-labelledby="mlab">
+              <button type="button" data-motion="auto">Match device</button>
+              <button type="button" data-motion="reduced">Reduced</button>
+              <button type="button" data-motion="full">Full</button>
+            </div>
+            <p class="snote">Reduced motion turns off screen shake, drifting dust and light flicker.</p>
+          </section>
+          <section class="sblock">
+            <span class="slab">Controls</span>
+            <ul class="keys">
+              <li><b>Keyboard</b> arrows or A D to run, Space jump, X attack, E use, P pause, M mute</li>
+              <li><b>Touch</b> slide the stick on the left to run, tap the buttons on the right. Tap the screen to attack.</li>
+              <li><b>Gamepad</b> left stick to run, A jump, X strike, B use, Start pause</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="ov hero" id="ov">
       <div class="card">
@@ -326,6 +405,7 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
         <button class="primary" id="start" type="button">Start hunting</button>
         <p class="how">Move <b>arrows</b> or <b>A D</b> &nbsp; Jump <b>Space</b> &nbsp; Attack <b>X</b> or click &nbsp; Use rope <b>E</b> &nbsp; Pause <b>P</b></p>
         <button class="tiny" id="tutagain" type="button" hidden>Replay the basics</button>
+        <button class="tiny" id="titleset" type="button">Settings and controls</button>
       </div>
     </div>
     <div class="tut" id="tut" hidden>
@@ -565,7 +645,7 @@ function spawnWorld() {
     var sz = SIZE[s.t];
     return {
       type: s.t, x: s.x, y: s.t === 'bat' ? s.y : GROUND, homeY: s.y || GROUND, home: s.x, range: s.r, dir: i % 2 ? 1 : -1,
-      hp: HP[s.t], maxhp: HP[s.t], w: sz[0], h: sz[1], vx: 0, vy: 0, state: s.t === 'boss' ? 'sleep' : 'patrol', st: 0, t: i * 1.7,
+      hp: HP[s.t] + diffNow().hp, maxhp: HP[s.t] + diffNow().hp, w: sz[0], h: sz[1], vx: 0, vy: 0, state: s.t === 'boss' ? 'sleep' : 'patrol', st: 0, t: i * 1.7,
       hurt: 0, dying: 0, cool: 0, air: false
     };
   });
@@ -594,13 +674,53 @@ function barriers() {
 }
 
 // ---------------------------------------------------------------- audio
-var ac = null, master = null, noiseBuf = null, amb = null;
+var ac = null, master = null, noiseBuf = null, amb = null, sfxGain = null, musicGain = null;
+// ---- player preferences: volume, music/sfx split, difficulty, motion
+var PREF_KEY = 'lh_prefs_v1';
+var prefs = { vol: 80, musicOn: true, music: 65, sfxOn: true, sfx: 85, motion: 'auto', diff: 'normal' };
+var DIFFS = {
+  easy: { dmg: 0.5, hunger: 0.36, hp: 0, name: 'Gentle', note: 'Half damage, hunger runs slower, enemies keep their usual hearts.' },
+  normal: { dmg: 1, hunger: 0.5, hp: 0, name: 'Normal', note: 'The island as it was built.' },
+  hard: { dmg: 1.5, hunger: 0.64, hp: 1, name: 'Hard', note: 'Harder hits, faster hunger, one extra heart on every enemy.' }
+};
+var REDUCE = false, muted = false;
+function prefsLoad() {
+  try {
+    var o = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    Object.keys(prefs).forEach(function (k) { if (o[k] !== undefined) prefs[k] = o[k]; });
+  } catch (e) { /* no storage: defaults */ }
+  if (!DIFFS[prefs.diff]) prefs.diff = 'normal';
+  applyMotion();
+}
+function prefsSave() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } }
+function diffNow() { return DIFFS[prefs.diff] || DIFFS.normal; }
+function motionReduced() {
+  if (prefs.motion === 'reduced') return true;
+  if (prefs.motion === 'full') return false;
+  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function applyMotion() {
+  REDUCE = motionReduced();
+  document.documentElement.classList.toggle('reduce-motion', REDUCE);
+  document.documentElement.classList.toggle('motion-full', prefs.motion === 'full');
+}
+function applyAudio() {
+  if (!ac || !master) return;
+  var t = ac.currentTime;
+  master.gain.setTargetAtTime(muted ? 0 : prefs.vol / 100, t, 0.05);
+  if (musicGain) musicGain.gain.setTargetAtTime(prefs.musicOn ? prefs.music / 100 : 0, t, 0.08);
+  if (sfxGain) sfxGain.gain.setTargetAtTime(prefs.sfxOn ? prefs.sfx / 100 : 0, t, 0.08);
+}
+prefsLoad();
 function audioInit() {
   try {
     if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
     if (ac.state === 'suspended') ac.resume();
     if (!master) {
-      master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+      master = ac.createGain(); master.gain.value = prefs.vol / 100;
+      sfxGain = ac.createGain(); sfxGain.gain.value = prefs.sfxOn ? prefs.sfx / 100 : 0;
+      musicGain = ac.createGain(); musicGain.gain.value = prefs.musicOn ? prefs.music / 100 : 0;
+      sfxGain.connect(master); musicGain.connect(master); master.connect(ac.destination);
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
       var d = noiseBuf.getChannelData(0);
       for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -618,23 +738,23 @@ function noise(d, f0, f1, type, v, q) {
     src.buffer = noiseBuf; f.type = type || 'lowpass'; f.Q.value = q || 1;
     f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + d);
     g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
-    src.connect(f); f.connect(g); g.connect(master); src.start(t, Math.random()); src.stop(t + d + 0.02);
+    src.connect(f); f.connect(g); g.connect(sfxGain || master); src.start(t, Math.random()); src.stop(t + d + 0.02);
   } catch (e) { /* audio not available */ }
 }
 // Looping background layers that fade in and out with the zone the hunter is in.
 function noiseLoop(type, freq, q) {
   var src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
   src.buffer = noiseBuf; src.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q || 0.7; g.gain.value = 0;
-  src.connect(f); f.connect(g); g.connect(master); src.start();
+  src.connect(f); f.connect(g); g.connect(sfxGain || master); src.start();
   return g;
 }
 function initAmbient() {
   var cr = ac.createOscillator(), crg = ac.createGain(), lfo = ac.createOscillator(), lfog = ac.createGain();
   cr.type = 'sine'; cr.frequency.value = 4400; crg.gain.value = 0;
   lfo.type = 'square'; lfo.frequency.value = 7.5; lfog.gain.value = 0.5;
-  lfo.connect(lfog); cr.connect(crg); crg.connect(master); cr.start(); lfo.start();
+  lfo.connect(lfog); cr.connect(crg); crg.connect(sfxGain || master); cr.start(); lfo.start();
   var dr = ac.createOscillator(), drg = ac.createGain();
-  dr.type = 'sine'; dr.frequency.value = 52; drg.gain.value = 0; dr.connect(drg); drg.connect(master); dr.start();
+  dr.type = 'sine'; dr.frequency.value = 52; drg.gain.value = 0; dr.connect(drg); drg.connect(sfxGain || master); dr.start();
   amb = { waves: noiseLoop('lowpass', 520, 0.5), wind: noiseLoop('bandpass', 380, 0.6), leaves: noiseLoop('bandpass', 2400, 0.9), rumble: noiseLoop('lowpass', 140, 0.5), crick: crg, drone: drg, rain: noiseLoop('highpass', 3200, 0.4) };
 }
 var AMB_LEVELS = [
@@ -647,7 +767,7 @@ var AMB_LEVELS = [
 function ambientUpdate() {
   if (!master || !amb) return;
   var t = ac.currentTime, on = !muted && S.mode !== 'title';
-  master.gain.setTargetAtTime(muted ? 0 : 1, t, 0.05);
+  applyAudio();
   var zi = zoneIndex(S.p.x), lv = AMB_LEVELS[zi];
   for (var k in amb) {
     var base = on ? lv[k] : 0;
@@ -677,7 +797,7 @@ function tone(f, f2, d, type, v) {
     o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + d);
     g.gain.setValueAtTime(v || 0.05, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + d);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+    o.connect(g); g.connect(sfxGain || master); o.start(t); o.stop(t + d + 0.02);
   } catch (e) { /* audio not available */ }
 }
 var SFX = {
@@ -787,7 +907,7 @@ var MUSIC = [
 var mus = { bus: null, ch: null, zone: -1, want: -1, step: 0, nextT: 0, timer: null, active: false };
 function initMusic() {
   if (mus.bus || !ac) return;
-  mus.bus = ac.createGain(); mus.bus.gain.value = 0; mus.bus.connect(master);
+  mus.bus = ac.createGain(); mus.bus.gain.value = 0; mus.bus.connect(musicGain || master);
 }
 function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 // One note. pluck = wooden/hollow, bell = long ringing, bass = round low, pad = wide chord.
@@ -1016,6 +1136,7 @@ function toastRate(key, msg) { if (!S.toasted[key] || S.t - S.toasted[key] > 4) 
 
 // ---------------------------------------------------------------- effects
 function burst(x, y, n, col, spd, life) {
+  if (REDUCE) n = Math.ceil(n / 4);
   for (var i = 0; i < n && S.parts.length < 320; i++) {
     var a = Math.random() * Math.PI * 2, s = (0.3 + Math.random()) * spd;
     S.parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - spd * 0.3, life: life * (0.5 + Math.random() * 0.7), max: life, col: col, r: 1.5 + Math.random() * 2.5 });
@@ -1237,7 +1358,8 @@ function hurtPlayer(dir) {
   var p = S.p;
   if (p.inv > 0 || S.mode !== 'play') return;
   S.freeze = Math.max(S.freeze, 0.07);
-  p.hp -= 1; p.inv = 1.3; buzz(28); p.vy = -280; p.vx = dir * 250; p.kb = 0.22; p.onGround = false;
+  var dmg = Math.max(1, Math.round(diffNow().dmg));
+  p.hp -= dmg; p.inv = 1.3; buzz(28); p.vy = -280; p.vx = dir * 250; p.kb = 0.22; p.onGround = false;
   S.shake = 0.25;
   burst(p.x, p.y - 26, 8, '#ee5a43', 150, 0.5);
   SFX.hurt();
@@ -1347,7 +1469,7 @@ function updatePlayer(dt) {
   var ax = padAx || stickAx || ((keys.right ? 1 : 0) - (keys.left ? 1 : 0));
   if (S.tie) { ax = 0; jumpEdge = false; p.inv = Math.max(p.inv, 0.4); }
   // hunger: you tire when hungry and weaken when starving (never to death by hunger alone)
-  p.food = Math.max(0, p.food - dt * 0.5);
+  p.food = Math.max(0, p.food - dt * diffNow().hunger);
   // a full belly does the healing work: fruit above 60 mends a heart every 13s
   if (p.food > 60 && p.hp < 5 && S.mode === 'play') {
     S.regenT += dt;
@@ -2847,7 +2969,7 @@ var MOTES = (function () {
 var LIFE_TINT = ['#ffe2b4', '#e9ffb4', '#a8ecff', '#cfe0ff', '#e2edff'];
 var lFlash = 0;
 function plateLife(th) {
-  if (gfxLite) return;
+  if (gfxLite || REDUCE) return;
   var zi = zoneIndex(cam + VW / 2), t = S.t;
   // cloud shadow rolling across the whole view
   for (var c = 0; c < 2; c++) {
@@ -2948,7 +3070,7 @@ function chirp(f0, f1, dur, type, vol, delay) {
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.03, dur * 0.3));
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.06);
+    o.connect(g); g.connect(sfxGain || master); o.start(t0); o.stop(t0 + dur + 0.06);
   } catch (e) {}
 }
 var lifeSnd = 3;
@@ -2980,8 +3102,8 @@ function lifeTick(dt) {
 
 function render() {
   cam = S.cam;
-  var shx = S.shake > 0 ? (Math.random() - 0.5) * 7 * Math.min(1, S.shake * 3) : 0;
-  var shy = S.shake > 0 ? (Math.random() - 0.5) * 5 * Math.min(1, S.shake * 3) : 0;
+  var shx = S.shake > 0 && !REDUCE ? (Math.random() - 0.5) * 7 * Math.min(1, S.shake * 3) : 0;
+  var shy = S.shake > 0 && !REDUCE ? (Math.random() - 0.5) * 5 * Math.min(1, S.shake * 3) : 0;
   ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   var cx = cam + VW / 2, th = themeAt(cx), cave = caveAmt(cx);
   var artDrawn = drawBackdrop();
@@ -3091,7 +3213,7 @@ function render() {
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, H);
   if (S.p.inv > 1.0 && S.mode === 'play') { ctx.fillStyle = 'rgba(220,40,30,' + (S.p.inv - 1.0) * 0.9 + ')'; ctx.fillRect(0, 0, VW, H); }
-  if (S.flash > 0) { ctx.fillStyle = 'rgba(255,240,190,' + Math.min(1, S.flash * 1.6) + ')'; ctx.fillRect(0, 0, VW, H); }
+  if (S.flash > 0) { ctx.fillStyle = 'rgba(255,240,190,' + Math.min(1, S.flash * 1.6) * (REDUCE ? 0.45 : 1) + ')'; ctx.fillRect(0, 0, VW, H); }
   if (S.blink > 0) { ctx.fillStyle = 'rgba(3,5,10,' + Math.min(1, S.blink) + ')'; ctx.fillRect(0, 0, VW, H); }
 }
 
@@ -3374,7 +3496,9 @@ function pause() {
   if (S.mode !== 'play') return;
   S.mode = 'paused';
   showOverlay('<p class="kicker">Paused</p><h2>Catch your breath</h2><button class="primary" id="resume" type="button">Keep hunting</button>' +
-    '<button class="tiny" id="tutagain" type="button">Replay the basics</button>');
+    '<button class="tiny" id="tutagain" type="button">Replay the basics</button>' +
+    '<button class="tiny" id="pauseset" type="button">Settings and controls</button>');
+  $('pauseset').addEventListener('click', openSettings);
   $('resume').addEventListener('click', resume);
   $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
   $('resume').focus();
@@ -3401,9 +3525,61 @@ $('tutok').addEventListener('click', function () { if (TUT.on) { var st = TUT_ST
 $('tutskip').addEventListener('click', function () { if (TUT.on) tutEnd(); });
 $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
 if (tutStored()) $('tutagain').hidden = false;   // returning players can pick the lesson again
-$('mute').addEventListener('click', function () {
-  muted = !muted; this.textContent = muted ? 'Sound off' : 'Sound on'; this.setAttribute('aria-pressed', String(muted));
+function syncMuteBtn() {
+  var b = $('mute');
+  b.textContent = muted ? 'Sound off' : 'Sound on';
+  b.setAttribute('aria-pressed', String(muted));
+}
+$('mute').addEventListener('click', function () { muted = !muted; syncMuteBtn(); applyAudio(); });
+
+// ---------------------------------------------------------------- settings panel
+function setSwitch(sel, on) {
+  var el = typeof sel === 'string' ? $(sel) : sel;
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  el.textContent = on ? 'On' : 'Off';
+  el.classList.toggle('on', !!on);
+}
+function syncSettings() {
+  $('volV').value = prefs.vol; $('volN').textContent = prefs.vol;
+  $('musV').value = prefs.music; setSwitch('musT', prefs.musicOn);
+  $('sfxV').value = prefs.sfx; setSwitch('sfxT', prefs.sfxOn);
+  document.querySelectorAll('.seg button[data-diff]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-diff') === prefs.diff); b.setAttribute('aria-pressed', String(b.getAttribute('data-diff') === prefs.diff)); });
+  document.querySelectorAll('.seg button[data-motion]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-motion') === prefs.motion); b.setAttribute('aria-pressed', String(b.getAttribute('data-motion') === prefs.motion)); });
+  $('dnote').textContent = diffNow().note;
+}
+function openSettings() {
+  syncSettings();
+  $('set').hidden = false;
+  if (S.mode === 'play') { S.mode = 'paused'; }
+  $('setclose').focus();
+}
+function closeSettings() {
+  $('set').hidden = true;
+  if (S.mode === 'paused' && $('ov').hidden) { S.mode = 'play'; last = performance.now(); }
+}
+$('setbtn').addEventListener('click', openSettings);
+$('titleset').addEventListener('click', openSettings);
+$('setclose').addEventListener('click', closeSettings);
+$('set').addEventListener('pointerdown', function (e) { if (e.target === this) closeSettings(); });
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !$('set').hidden) { closeSettings(); e.preventDefault(); return; }
+  if (e.key === 'Escape' && S.mode === 'paused') { resume(); e.preventDefault(); return; }
+  if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey) { muted = !muted; syncMuteBtn(); applyAudio(); }
 });
+$('volV').addEventListener('input', function () { prefs.vol = +this.value; $('volN').textContent = this.value; muted = prefs.vol > 0 ? false : muted; syncMuteBtn(); applyAudio(); prefsSave(); });
+$('musV').addEventListener('input', function () { prefs.music = +this.value; prefs.musicOn = prefs.music > 0; syncSettings(); applyAudio(); prefsSave(); });
+$('sfxV').addEventListener('input', function () { prefs.sfx = +this.value; prefs.sfxOn = prefs.sfx > 0; syncSettings(); applyAudio(); prefsSave(); });
+$('musT').addEventListener('click', function () { prefs.musicOn = !prefs.musicOn; syncSettings(); applyAudio(); prefsSave(); });
+$('sfxT').addEventListener('click', function () { prefs.sfxOn = !prefs.sfxOn; syncSettings(); applyAudio(); prefsSave(); });
+document.querySelectorAll('.seg button[data-diff]').forEach(function (b) {
+  b.addEventListener('click', function () { prefs.diff = b.getAttribute('data-diff'); syncSettings(); prefsSave(); toast('Difficulty: ' + diffNow().name + '. ' + diffNow().note, 3600); });
+});
+document.querySelectorAll('.seg button[data-motion]').forEach(function (b) {
+  b.addEventListener('click', function () { prefs.motion = b.getAttribute('data-motion'); applyMotion(); syncSettings(); prefsSave(); });
+});
+if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').addEventListener) {
+  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', function () { if (prefs.motion === 'auto') applyMotion(); });
+}
 
 // ---------------------------------------------------------------- main loop
 var last = performance.now(), acc = 0;
