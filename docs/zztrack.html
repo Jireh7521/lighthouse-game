@@ -75,10 +75,10 @@ button { font: inherit; color: inherit; }
 .heart.on path { fill: var(--heart); stroke: #ffd2c8; }
 .track { margin-top: 6px; width: 190px; max-width: 56%; padding: 6px 7px 5px; border-radius: 10px;
   background: rgba(6, 11, 26, 0.5); border: 1px solid rgba(255, 255, 255, 0.14);
-  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); pointer-events: auto; }
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); pointer-events: none; }
 .track[hidden] { display: none; }
 .thead { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; margin: 0; padding: 0;
-  background: none; border: 0; color: #f6b73c; font: 700 8.5px/1 var(--body); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; }
+  background: none; border: 0; color: #f6b73c; font: 700 8.5px/1 var(--body); letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; pointer-events: auto; }
 .thead b { color: rgba(255, 255, 255, 0.72); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
 .thead svg { width: 9px; height: 6px; opacity: 0.65; transition: transform 0.18s; }
 .track.open .thead svg { transform: rotate(180deg); }
@@ -906,6 +906,7 @@ function trackState() {
     { k: 'lh', label: (atLh || p.lanternUsed) ? 'Light the beacon' : 'Reach the lighthouse', done: p.lanternUsed,
       hint: p.lanternUsed ? 'The island is lit' : (S.bossDead ? 'Climb to the lamp, then press Use' : (atLh ? 'The Storm Panther guards the stair' : 'East along the headland')), at: BEACON_X }
   ];
+  for (var b = out.length - 2; b >= 0; b--) if (out[b + 1].done) out[b].done = true;   // progress is sequential
   for (var i = 0; i < out.length; i++) {
     if (out[i].done) continue;
     var d = distanceHint(p, out[i].at);
@@ -2785,7 +2786,7 @@ function layout() {
   dk.width = cv.width; dk.height = cv.height;
   SC = cv.width / VW;
   var trk = $('track');
-  if (trk) trk.classList.toggle('compact', h < 330);
+  if (trk) trk.classList.toggle('compact', h < 352);
   if (S) S.cam = clamp(S.cam, 0, WORLD - VW);
 }
 window.addEventListener('resize', layout);
@@ -3058,21 +3059,21 @@ window.addEventListener('load', function () {
     var rows = [].slice.call(document.getElementById('tlist').children).map(function (li) {
       return (li.className || '-') + ':' + li.children[1].textContent;
     });
-    put(tag + ' ' + document.getElementById('tcount').textContent + ' [' + rows.join(' / ') + '] hint="' + document.getElementById('thint').textContent + '" hid=' + document.getElementById('track').hidden);
+    put(tag + ' ' + document.getElementById('tcount').textContent + ' [' + rows.join(' / ') + '] hint="' + document.getElementById('thint').textContent + '"');
   }
-  try { localStorage.setItem('lh_tut_v1', '1'); } catch (e) {}   // skip the lesson for this check
+  try { localStorage.setItem('lh_tut_v1', '1'); } catch (e) {}
   L.start();
   setTimeout(function () { snap('A start'); }, 700);
   setTimeout(function () { L.S.p.x = 2400; }, 900);
-  setTimeout(function () { snap('B jungle x=2400'); }, 1200);
+  setTimeout(function () { snap('B x=2400'); }, 1200);
   setTimeout(function () { L.S.p.rope = true; }, 1400);
-  setTimeout(function () { snap('C rope held'); }, 1700);
+  setTimeout(function () { snap('C rope'); }, 1700);
   setTimeout(function () { L.S.p.ropeUsed = true; L.S.p.x = 3700; }, 1900);
-  setTimeout(function () { snap('D gorge/cave x=3700'); }, 2200);
+  setTimeout(function () { snap('D x=3700'); }, 2200);
   setTimeout(function () { L.S.p.lantern = true; L.S.p.x = 4500; }, 2400);
   setTimeout(function () { snap('E lantern'); }, 2700);
   setTimeout(function () { L.S.p.x = 6100; }, 2900);
-  setTimeout(function () { snap('F lighthouse'); }, 3200);
+  setTimeout(function () { snap('F lh'); }, 3200);
   setTimeout(function () { L.S.p.lanternUsed = true; }, 3400);
   setTimeout(function () { snap('G lit'); }, 3700);
 });
