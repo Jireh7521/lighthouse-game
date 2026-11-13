@@ -3143,27 +3143,26 @@ window.addEventListener('load', function () {
   try { localStorage.setItem('lh_tut_v1', '1'); } catch (e) {}
   L.start();
   var shots = [];
-  function place(lit, px) {
+  function place(lit) {
     var S = L.S;
     S.mode = 'play'; document.getElementById('ov').hidden = true;
-    S.p.x = px; S.p.y = 296; S.p.vy = 0; S.p.vx = 0; S.p.hp = 5; S.p.face = 1;
+    S.p.x = 1520; S.p.y = 296; S.p.vy = 0; S.p.vx = 0; S.p.hp = 5; S.p.face = 1;
     if (lit) { S.cp = 1420; S.cpI = 1; S.cpT = 0.25; } else { S.cp = 60; S.cpI = 0; S.cpT = 3; }
   }
-  function shot(lit, px, label) {
+  function shot(label) {
     var cv = document.getElementById('cv');
-    var w = Math.round(cv.width * 0.34), h = Math.round(cv.height * 0.62);
-    var sx = Math.round(cv.width / 2 - w / 2), sy = Math.round(cv.height * 0.38);
-    shots.push({ lit: lit, px: px, label: label, w: w, h: h, sx: sx, sy: sy });
+    var w = Math.round(cv.width * 0.62), h = Math.round(cv.height * 0.64);
+    shots.push({ label: label, w: w, h: h, sx: Math.round(cv.width / 2 - w / 2 - w * 0.18), sy: Math.round(cv.height * 0.36) });
   }
   function paint() {
     var cv = document.getElementById('cv');
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;color:#0f0;font:700 13px monospace;padding:6px;overflow:hidden';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;color:#0f0;font:700 13px monospace;padding:4px;overflow:hidden';
     document.body.appendChild(ov);
     shots.forEach(function (s) {
       var c = document.createElement('canvas');
-      c.width = 860; c.height = Math.round(860 * s.h / s.w);
-      c.style.cssText = 'display:block;width:860px;margin:4px 0;border:1px solid #0f0';
+      c.width = 900; c.height = Math.round(900 * s.h / s.w);
+      c.style.cssText = 'display:block;width:900px;margin:2px 0;border:1px solid #0f0';
       c.getContext('2d').drawImage(cv, s.sx, s.sy, s.w, s.h, 0, 0, c.width, c.height);
       var p = document.createElement('div'); p.textContent = s.label;
       ov.appendChild(p); ov.appendChild(c);
@@ -3171,10 +3170,10 @@ window.addEventListener('load', function () {
     var e = document.createElement('div'); e.textContent = 'ERR:' + (window.__ERR.join(';') || 'none');
     ov.appendChild(e);
   }
-  setTimeout(function () { place(true, 1432); }, 400);
-  setTimeout(function () { shot(true, 1432, 'LIT  checkpoint reached (bloom)'); }, 1100);
-  setTimeout(function () { place(false, 1432); }, 1300);
-  setTimeout(function () { shot(false, 1432, 'UNLIT  not reached yet'); }, 2000);
+  setTimeout(function () { place(true); }, 400);
+  setTimeout(function () { shot('LIT (reached: lantern burning, pennant bright)'); }, 1100);
+  setTimeout(function () { place(false); }, 1300);
+  setTimeout(function () { shot('UNLIT (ahead of you: dead lantern)'); }, 2000);
   setTimeout(function () { paint(); }, 2800);
 });
 </script>
