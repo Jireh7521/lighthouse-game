@@ -73,6 +73,20 @@ button { font: inherit; color: inherit; }
 .heart svg { display: block; width: 100%; height: auto; }
 .heart path { fill: rgba(0, 0, 0, 0.35); stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.5; }
 .heart.on path { fill: var(--heart); stroke: #ffd2c8; }
+.hcard { position: absolute; left: 8px; top: 58px; z-index: 5; width: 250px; max-width: 76%; padding: 9px 11px 10px; border-radius: 12px;
+  background: rgba(6, 11, 26, 0.94); border: 1px solid rgba(246, 183, 60, 0.45); box-shadow: 0 12px 26px -16px #000;
+  color: #f2eedd; font: 500 11px/1.45 var(--body); pointer-events: auto; }
+.hcard[hidden] { display: none; }
+.hcard p { margin: 0 0 5px; }
+.hcard p:last-child { margin: 6px 0 0; color: #cfd6e6; }
+.hcard b { color: #ffd68a; }
+.hcard ul { margin: 0; padding-left: 15px; }
+.hcard li { margin: 2.5px 0; }
+.food { pointer-events: auto; cursor: pointer; }
+.food .bar2 { position: relative; }
+.food .bar2::after { content: ''; position: absolute; left: 25%; top: -1px; bottom: -1px; width: 1px; background: rgba(255, 255, 255, 0.5); }
+.slot.sun { border-style: solid; border-color: rgba(255, 200, 90, 0.45); color: #ffd68a; }
+.slot.sun b { font-weight: 700; font-variant-numeric: tabular-nums; }
 .track { margin-top: 6px; width: 190px; max-width: 56%; padding: 6px 7px 5px; border-radius: 10px;
   background: rgba(6, 11, 26, 0.5); border: 1px solid rgba(255, 255, 255, 0.14);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); pointer-events: none; }
@@ -222,6 +236,10 @@ button { font: inherit; color: inherit; }
 .note { margin: 0; font: 500 12px/1.4 var(--body); color: var(--mute); }
 .boardwrap { display: grid; gap: 5px; }
 .board { display: grid; gap: 3px; }
+.gemsrow { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; font: 700 10px/1 var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.gems { display: flex; gap: 4px; }
+.gems i { width: 12px; height: 12px; transform: rotate(45deg); border-radius: 2px; border: 1.4px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+.gems i.on { background: linear-gradient(140deg, #ffe9a8, #ffab2e); border-color: #ffd68a; box-shadow: 0 0 8px rgba(255,190,80,0.55); }
 .board .row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: baseline; font: 500 13px/1.5 var(--body); color: var(--fg); }
 .board .row.head { font: 700 10px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); }
 .board .row b { font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -259,7 +277,7 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
     <div class="hud" id="hud">
       <div>
         <div class="hearts" id="hearts" role="img" aria-label="Health"></div>
-        <div class="food" id="food"><span>Hunger</span><span class="bar2"><i id="foodfill"></i></span></div>
+        <div class="food" id="food" role="button" tabindex="0" aria-expanded="false" aria-controls="hcard" title="What hunger does"><span>Hunger</span><span class="bar2"><i id="foodfill"></i></span></div>
         <div class="track" id="track" hidden>
           <button class="thead" id="thead" type="button" aria-expanded="false" aria-controls="tlist">
             <span>Objective <b id="tcount">0/5</b></span>
@@ -280,11 +298,22 @@ html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0
         <div class="clock" id="clock"></div>
         <div class="pack">
           <span class="slot" id="slot-rope"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="10" cy="11" rx="7" ry="4.5"/><ellipse cx="10" cy="10" rx="3.5" ry="2"/><path d="M16 13c1 1 2 1 3 2"/></svg>Rope</span>
+          <span class="slot sun" id="slot-sun" title="Sunstones found"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2l6 5-2.6 9H6.6L4 7z"/><path d="M10 2v14M4 7h12" stroke-width="1.3" opacity=".7"/></svg><b id="sunnum">0/5</b></span>
           <span class="slot" id="slot-lantern"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4q3-3 6 0"/><rect x="5.5" y="5" width="9" height="11" rx="2"/><path d="M8 16v2h4v-2M10 8v5"/></svg>Lantern</span>
         </div>
         <div class="route" id="route" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="zone" id="zone"></div>
       </div>
+    </div>
+    <div class="hcard" id="hcard" hidden>
+      <p><b>Hunger</b> drains as you run.</p>
+      <ul>
+        <li><b>Above 60</b> you mend a heart every few seconds.</li>
+        <li><b>25 to 60</b> nothing changes: you are steady.</li>
+        <li><b>Below 25</b> no healing, and your legs get heavy.</li>
+        <li><b>At 0</b> you lose a heart every 9 seconds.</li>
+      </ul>
+      <p>Fruit from the trees fills it. The spring in the cave fills and heals in one go.</p>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="ov hero" id="ov">
@@ -354,6 +383,17 @@ var PLATS = [
   { x: 1500, w: 120, y: 236 }, { x: 2060, w: 110, y: 228 }, { x: 2480, w: 90, y: 252 }, { x: 2600, w: 150, y: 204 },
   { x: 3100, w: 120, y: 236 }, { x: 3900, w: 120, y: 236 }, { x: 4420, w: 110, y: 222 }, { x: 5000, w: 100, y: 240 }
 ];
+// Five sunstones, one tucked into each stretch of the island. Each is behind
+// something: a tide, a carved drum puzzle, a cracked seam, a high ledge, a wall.
+var SECRETS = [
+  { id: 'tide', name: 'the tide pocket', x: 902, y: GROUND - 30 },
+  { id: 'drums', name: 'the drum rock', x: 2366, y: GROUND - 30 },
+  { id: 'seam', name: 'the cracked seam', x: 4362, y: GROUND - 30 },
+  { id: 'ledge', name: 'the high ledge', x: 5048, y: 214 },
+  { id: 'cache', name: "the keeper's cache", x: 5902, y: GROUND - 30 }
+];
+var DRUM_X = [2326, 2364, 2402], SEAM_X = 4340, CACHE_X = 5876, LOG_X = 1650, LOG_OUT = 2520;
+var SUN_KEY = 'lh_suns_v1';
 var CHECKPOINTS = [
   { x: 60, name: 'The Beach' },
   { x: 1420, name: 'The Jungle' },
@@ -515,7 +555,7 @@ function newState() {
     mode: 'title', time: 0, cam: 0, shake: 0, t: 0,
     p: { x: 60, y: GROUND, vx: 0, vy: 0, face: 1, onGround: true, coy: 0, jbuf: 0, hp: 5, inv: 0, kb: 0, throwCd: 0, throwT: 0, stab: 0, anim: 0, rope: false, ropeUsed: false, lantern: false, lanternUsed: false, food: 100, starveT: 0, sq: 0, stepN: 0, ph: 0, bleedT: 0, heartT: 0 },
     enemies: [], spears: [], parts: [], items: [], floaters: [],
-    score: 0, kills: 0, cp: 60, cpI: 0, cpT: 3, lastSafe: 60, safeTimer: 0, bridgeGrow: false, bridgeT: 0, tie: null,
+    score: 0, kills: 0, cp: 60, cpI: 0, cpT: 3, suns: 0, open: {}, drumsHit: [false, false, false], drumT: 0, seamHp: 2, cacheHp: 3, blink: 0, logUsed: false, regenT: 0, hungerAsk: 0, lastSafe: 60, safeTimer: 0, bridgeGrow: false, bridgeT: 0, tie: null,
     tutGate: tutStored(), ate: false, bossAwake: false, bossDead: false, poolUsed: false, winT: 0, toasted: {}, toastT: 0, flash: 0, freeze: 0, bolt: 0, boltT: 8, evT: 3, obst: [], falls: [], fz: [], boulders: [], bolts: [], bcd: 1.5, boltCd: 2.2
   };
 }
@@ -535,6 +575,7 @@ function spawnWorld() {
   FRUITS.forEach(function (f) { S.items.push({ type: 'fruit', x: f.x, y: f.y, got: false }); });
   S.items.push({ type: 'rope', x: ROPE_POS.x, y: ROPE_POS.y, got: false });
   S.items.push({ type: 'lantern', x: LANTERN_POS.x, y: LANTERN_POS.y, got: false });
+  SECRETS.forEach(function (sc) { S.items.push({ type: 'sun', sid: sc.id, x: sc.x, y: sc.y, got: false }); });
 }
 
 function solidAt(x) {
@@ -663,6 +704,12 @@ var SFX = {
     else { tone(75, 48, 0.9, 'sawtooth', 0.11 * vol); noise(0.9, 500, 110, 'lowpass', 0.12 * vol, 0.7); }
   },
   heart: function () { tone(62, 48, 0.12, 'sine', 0.12); setTimeout(function () { tone(58, 45, 0.1, 'sine', 0.09); }, 150); },
+  sun: function () {
+    [784, 1046, 1318, 1568].forEach(function (f, i) { setTimeout(function () { tone(f, f * 1.01, 0.32, 'sine', 0.045); }, i * 80); });
+  },
+  drum: function (i) { noise(0.16, 320 + i * 90, 130, 'lowpass', 0.16, 0.9); tone(90 + i * 26, 62 + i * 20, 0.2, 'triangle', 0.06); },
+  door: function () { noise(0.9, 300, 90, 'lowpass', 0.2, 0.7); tone(70, 42, 0.9, 'triangle', 0.07); },
+  rock: function () { noise(0.22, 1400, 180, 'lowpass', 0.17, 0.8); tone(140, 60, 0.16, 'triangle', 0.06); },
   checkpoint: function () {
     [659, 880, 1318].forEach(function (f, i) { setTimeout(function () { tone(f, f * 1.01, 0.26, 'sine', 0.05); }, i * 95); });
     noise(0.34, 2400, 700, 'bandpass', 0.05, 1.3);
@@ -954,6 +1001,8 @@ function updateHud() {
   $('food').classList.toggle('low', p.food < 25);
   $('slot-rope').classList.toggle('have', p.rope);
   $('slot-rope').classList.toggle('done', p.ropeUsed);
+  $('sunnum').textContent = S.suns + '/5';
+  $('slot-sun').classList.toggle('have', S.suns > 0);
   $('slot-lantern').classList.toggle('have', p.lantern);
   $('slot-lantern').classList.toggle('done', p.lanternUsed);
   $('zone').textContent = (zi + 1) + '/5 ' + ZONES_META[zi].name;
@@ -983,7 +1032,7 @@ function tutStore() { try { localStorage.setItem(TUT_KEY, '1'); } catch (e) { /*
 var TUT_STEPS = [
   { id: 'move', title: 'Walk', text: 'Hold right, or slide the stick, to walk along the shore.' },
   { id: 'grab', title: 'Collect', text: 'Walk into the mango to pick it up.' },
-  { id: 'food', title: 'Hunger', text: 'That bar up top is your hunger. It drains as you run, and fruit fills it. Empty, it costs health.', ok: true },
+  { id: 'food', title: 'Hunger', text: 'That bar up top is hunger. It drains as you run. Above 60 it mends a heart every few seconds, below 25 you stop healing and slow down, and at 0 it eats your health. Fruit fills it.', ok: true },
   { id: 'jump', title: 'Jump', text: 'Press Space or tap Jump to leap. The boulder ahead has to be cleared.' },
   { id: 'fight', title: 'Fight', text: 'Press X or tap Attack to throw your spear. Land on a crab to stomp it.' },
   { id: 'use', title: 'Use', text: 'The driftwood gate is jammed. Stand by it, then press E or tap Use to shove it open.' }
@@ -1049,6 +1098,7 @@ function startGame() {
   spawnWorld();
   S.mode = 'play';
   $('ov').hidden = true;
+  hungerCard(false);
   hudCache = '';
   if (!tutStored() || TUT.force) { TUT.force = false; tutStart(); }
   else toast(touchMode ? 'Slide the stick to walk. Tap Attack to fight. Land on enemies to stomp them.' : 'Run right. Press X or click to attack. Land on enemies to stomp them.', 5000);
@@ -1120,15 +1170,40 @@ function finishWin() {
   lbGet(drawWin);
 }
 
+function endingFor(n) {
+  if (n >= 5) return {
+    kicker: 'Keeper of the light',
+    title: 'You gave the island its light back',
+    text: 'All five sunstones burn in the lamp. The storm breaks, the sea goes flat, and a ship far out on the horizon turns its bow toward the harbour. You are not a castaway any more. You are the keeper, and the light will burn for the next one.'
+  };
+  if (n >= 3) return {
+    kicker: 'Rescued',
+    title: 'The beacon is lit',
+    text: 'A boat sees the light and turns toward the island. You leave with ' + n + ' sunstones in your pack: a good haul. Somewhere out there the island is still holding the rest of them in the dark.'
+  };
+  return {
+    kicker: 'Rescued',
+    title: 'The beacon is lit',
+    text: 'A boat sees the light and turns toward the island. You escaped with little more than your spear. The island keeps its secrets: five sunstones are hidden out there, if you ever come back for them.'
+  };
+}
+function gemRow(n, total) {
+  var h = '<div class="gems" aria-label="' + n + ' of ' + total + ' sunstones">';
+  for (var i = 0; i < total; i++) h += '<i' + (i < n ? ' class="on"' : '') + '></i>';
+  return h + '</div>';
+}
 function drawWin() {
-  var w = winState;
-  var html = '<p class="kicker">Rescued</p><h2>The beacon is lit</h2>' +
-    '<p class="lede">A boat sees the light and turns toward the island. You escaped.</p>' +
+  var w = winState, en = endingFor(S.suns), seen = sunTotal();
+  var html = '<p class="kicker">' + en.kicker + '</p><h2>' + en.title + '</h2>' +
+    '<p class="lede">' + en.text + '</p>' +
+    '<div class="gemsrow"><span>Sunstones this run</span>' + gemRow(S.suns, 5) + '</div>' +
+    (seen >= 5 ? '<p class="record">Every sunstone on the island has passed through your hands.</p>' : (seen ? '<p class="note">Sunstones found across your runs: ' + seen + ' of 5.</p>' : '')) +
     '<div class="stats">' +
       '<div class="stat"><span>Score</span><b>' + S.score + '</b></div>' +
       '<div class="stat"><span>Time</span><b>' + fmtT(w.run) + '</b></div>' +
       '<div class="stat"><span>Best time</span><b>' + (bestTime ? fmtT(bestTime) : '--') + '</b></div>' +
       '<div class="stat"><span>Hunted</span><b>' + S.kills + '</b></div>' +
+      '<div class="stat"><span>Sunstones</span><b>' + S.suns + '/5</b></div>' +
       '<div class="stat"><span>Best score</span><b>' + best + '</b></div>' +
     '</div>' +
     (w.faster && w.prev ? '<p class="record">New record: ' + fmtT(w.prev - w.run) + ' faster than your best.</p>'
@@ -1138,9 +1213,11 @@ function drawWin() {
       ? '<p class="note">' + (w.rank ? 'You are #' + w.rank + ' on the board.' : 'Your time is posted.') + '</p>'
       : '<div class="namebar"><input id="pname" maxlength="14" placeholder="Your name" value="' + escH(playerName) + '" aria-label="Name for the leaderboard"><button class="primary" id="post" type="button">' + (w.posting ? 'Posting...' : 'Post my time') + '</button></div>' +
         (w.err ? '<p class="note">The board is unreachable right now. Your time is still saved on this device.</p>' : '')) +
-    '<button class="primary" id="again" type="button">Hunt again</button>';
+    '<button class="primary" id="again" type="button">Hunt again</button>' +
+    '<button class="tiny" id="winagain" type="button">Replay the basics</button>';
   showOverlay(html);
   $('again').addEventListener('click', startGame);
+  $('winagain').addEventListener('click', function () { TUT.force = true; startGame(); });
   if ($('post')) $('post').addEventListener('click', function () {
     var v = $('pname').value.replace(/\s+/g, ' ').trim().slice(0, 14) || 'Hunter';
     playerName = v;
@@ -1217,6 +1294,14 @@ function interact() {
     } else toastRate('nolamp', 'The lamp needs a flame. You need the lantern from the cave.');
     return;
   }
+  if (!S.logUsed && Math.abs(p.x - LOG_X) < 70) {
+    S.logUsed = true;
+    S.score += 150;
+    S.blink = 1;
+    SFX.throw_();
+    setTimeout(function () { respawnAt(LOG_OUT); S.blink = 0.85; toast('You crawl through the hollow log and come out downwind, past the thorns.', 3200); }, 260);
+    return;
+  }
   if (!nearGate()) return;
   if (p.rope) {
     p.rope = false; p.ropeUsed = true; S.tie = { t: 0 }; S.score += 200;
@@ -1262,9 +1347,20 @@ function updatePlayer(dt) {
   var ax = padAx || stickAx || ((keys.right ? 1 : 0) - (keys.left ? 1 : 0));
   if (S.tie) { ax = 0; jumpEdge = false; p.inv = Math.max(p.inv, 0.4); }
   // hunger: you tire when hungry and weaken when starving (never to death by hunger alone)
-  p.food = Math.max(0, p.food - dt * 0.42);
+  p.food = Math.max(0, p.food - dt * 0.5);
+  // a full belly does the healing work: fruit above 60 mends a heart every 13s
+  if (p.food > 60 && p.hp < 5 && S.mode === 'play') {
+    S.regenT += dt;
+    if (S.regenT > 13) {
+      S.regenT = 0; p.hp++;
+      floater(p.x, p.y - 74, '+1 heart', '#9be58f');
+      burst(p.x, p.y - 30, 6, '#9be58f', 60, 0.5);
+      SFX.pick();
+    }
+  } else S.regenT = 0;
   var tired = p.food <= 0 ? 0.8 : (p.food < 25 ? 0.9 : 1);
-  if (p.food < 25) toastOnce('hungry', 'You are getting hungry. Eat fruit from the trees.', 3400);
+  if (p.food < 60) toastOnce('hungry60', 'Hunger is dropping. Above 60 it slowly mends your hearts.', 3600);
+  if (p.food < 25) toastOnce('hungry', 'Hungry: you heal no more and your legs are heavy. Eat fruit from the trees.', 3800);
   if (p.food <= 0) { toastOnce('starving', 'You are starving. You move slower. Find fruit.', 3600); p.starveT += dt; if (p.starveT > 9 && p.hp > 1) { p.starveT = 0; p.hp -= 1; S.shake = 0.15; SFX.hurt(); floater(p.x, p.y - 60, 'starving', '#ffb4a4'); } } else p.starveT = 0;
   if (p.kb > 0) { p.kb -= dt; p.vx *= 0.92; } else {
     var tgt = ax * RUN * tired * (p.hp <= 1 ? 0.92 : 1);
@@ -1492,7 +1588,8 @@ function updateSpears(dt) {
         if (tx > e.x - e.w / 2 - 3 && tx < e.x + e.w / 2 + 3 && ty > top && ty < bot) { hitEnemy(e, 1, sign(s.vx)); hit = true; }
       }
       if (hit) return;
-      if (ty >= GROUND - 1 && solidAt(tx)) { s.mode = 'stuck'; s.t = 0; s.y = GROUND - 1; }
+      if (hitSecret(tx, ty)) { s.mode = 'stuck'; s.t = 0; s.y = Math.min(ty, GROUND - 1); }
+      else if (ty >= GROUND - 1 && solidAt(tx)) { s.mode = 'stuck'; s.t = 0; s.y = GROUND - 1; }
       else if (s.t > 1.4 || Math.abs(s.x - S.cam - VW / 2) > VW) return;
       keep.push(s);
     } else {
@@ -1500,6 +1597,56 @@ function updateSpears(dt) {
     }
   });
   S.spears = keep;
+}
+
+// A thrown spear can ring a drum, crack a wall or split a seam of crystal.
+function hitSecret(tx, ty) {
+  var i;
+  if (!S.open.drums) {
+    for (i = 0; i < 3; i++) {
+      if (Math.abs(tx - DRUM_X[i]) < 16 && ty > GROUND - 54 && ty < GROUND - 2) {
+        S.drumT = 8;
+        if (!S.drumsHit[i]) {
+          S.drumsHit[i] = true;
+          S.score += 25;
+          floater(DRUM_X[i], GROUND - 62, 'dum', '#ffd68a');
+          burst(DRUM_X[i], GROUND - 40, 8, '#c9a06a', 90, 0.5);
+          SFX.drum(i);
+          if (S.drumsHit[0] && S.drumsHit[1] && S.drumsHit[2]) {
+            S.open.drums = true;
+            S.shake = 0.5;
+            SFX.door();
+            floater(2366, GROUND - 90, 'The rock splits', '#ffd06b');
+            toast('All three drums ring together. The drum rock grinds open.', 3600);
+          }
+        }
+        return true;
+      }
+    }
+  }
+  if (!S.open.seam && Math.abs(tx - SEAM_X) < 22 && ty > GROUND - 80) {
+    S.seamHp -= 1;
+    S.shake = 0.28;
+    burst(SEAM_X, GROUND - 40, 10, '#8fd8ff', 110, 0.6);
+    if (S.seamHp <= 0) {
+      S.open.seam = true;
+      SFX.door();
+      toast('The seam splits and a cold draft comes out. There is a hollow behind it.', 3400);
+    } else SFX.rock();
+    return true;
+  }
+  if (!S.open.cache && Math.abs(tx - CACHE_X) < 22 && ty > GROUND - 96) {
+    S.cacheHp -= 1;
+    S.shake = 0.26;
+    burst(CACHE_X, GROUND - 50, 10, '#b9a98c', 100, 0.6);
+    if (S.cacheHp <= 0) {
+      S.open.cache = true;
+      SFX.door();
+      toast('The wall gives way. A keeper\u2019s cache: dry rope, a lamp, one sunstone.', 3600);
+    } else SFX.rock();
+    return true;
+  }
+  return false;
 }
 
 function updateItems() {
@@ -1513,6 +1660,15 @@ function updateItems() {
         it.got = true; if (it.tut) TUT.got = true; S.ate = true; p.food = Math.min(100, p.food + 38); var healed = p.hp < 5; if (healed) p.hp += 1; S.score += 25; floater(it.x, it.y - 12, healed ? '+1 health, fed' : 'fed', '#9be58f'); burst(it.x, it.y, 8, '#ffb84a', 90, 0.5); SFX.pick();
       } else if (it.type === 'rope') {
         it.got = true; p.rope = true; S.score += 300; floater(it.x, it.y - 14, 'Rope!', '#ffd66b'); burst(it.x, it.y, 14, '#d9b878', 130, 0.7); SFX.pick(); toast('You found the rope. The old bridge is waiting.', 3400);
+      } else if (it.type === 'sun') {
+        if (!sunOpen(it.sid)) return;
+        it.got = true; S.suns++; S.score += 400; S.open[it.sid] = true;
+        sunSave(it.sid);
+        floater(it.x, it.y - 18, 'Sunstone', '#ffd06b');
+        burst(it.x, it.y, 18, '#ffc94e', 150, 0.8);
+        SFX.sun();
+        toast('Sunstone ' + S.suns + ' of 5, from ' + sunName(it.sid) + '. ' +
+          (S.suns >= 5 ? 'All five. The beacon will burn like a bonfire.' : 'Four more are hidden on this island.'), 3600);
       } else if (it.type === 'lantern') {
         it.got = true; p.lantern = true; S.score += 300; floater(it.x, it.y - 14, 'Lantern!', '#ffd66b'); burst(it.x, it.y, 14, '#ffcf70', 130, 0.7); SFX.pick(); toast('You found the lantern. Light the beacon with it.', 3400);
       }
@@ -1523,6 +1679,23 @@ function updateItems() {
   }
 }
 
+function sunName(id) { for (var i = 0; i < SECRETS.length; i++) if (SECRETS[i].id === id) return SECRETS[i].name; return 'somewhere'; }
+function sunOpen(id) {
+  if (id === 'drums') return !!S.open.drums;
+  if (id === 'seam') return !!S.open.seam;
+  if (id === 'cache') return !!S.open.cache;
+  if (id === 'tide') return !tideSurge();
+  return true;
+}
+function sunSave(id) {
+  try {
+    var a = JSON.parse(localStorage.getItem(SUN_KEY) || '[]');
+    if (a.indexOf(id) < 0) { a.push(id); localStorage.setItem(SUN_KEY, JSON.stringify(a)); }
+  } catch (e) { /* storage unavailable */ }
+}
+function sunTotal() {
+  try { return (JSON.parse(localStorage.getItem(SUN_KEY) || '[]')).length; } catch (e) { return 0; }
+}
 function inMudNow(p) { for (var i = 0; i < S.obst.length; i++) if (S.obst[i].k === 'mud' && Math.abs(p.x - S.obst[i].x) < S.obst[i].w / 2) return true; return false; }
 
 // Obstacles: thorns, rockfalls, rolling boulders, lightning
@@ -1633,6 +1806,8 @@ function step(dt) {
     S.enemies.forEach(function (e) { updateEnemy(e, dt); voiceTick(e, dt); });
     S.enemies = S.enemies.filter(function (e) { return !(e.dying > 0.45); });
     updateSpears(dt);
+    if (S.blink > 0) S.blink = Math.max(0, S.blink - dt * 2.4);
+    if (S.drumT > 0) { S.drumT -= dt; if (S.drumT <= 0 && !S.open.drums) S.drumsHit = [false, false, false]; }
     updateItems();
     updateHazards(dt);
     ambientEvents(dt);
@@ -1647,7 +1822,7 @@ function step(dt) {
   // camera: leads the way you run
   var target = clamp(S.p.x - VW * 0.36 + S.p.face * VW * 0.06 + S.p.vx * 0.12, 0, WORLD - VW);
   S.cam += (target - S.cam) * Math.min(1, dt * 6);
-  $('b-use').classList.toggle('ready', S.mode === 'play' && ((S.p.rope && nearGate()) || (S.p.lantern && nearTower()) || (!S.tutGate && Math.abs(S.p.x - TUT_GATE_X) < 90)));
+  $('b-use').classList.toggle('ready', S.mode === 'play' && ((S.p.rope && nearGate()) || (S.p.lantern && nearTower()) || (!S.tutGate && Math.abs(S.p.x - TUT_GATE_X) < 90) || (!S.logUsed && Math.abs(S.p.x - LOG_X) < 70)));
   updateHud();
 }
 
@@ -2100,6 +2275,120 @@ function drawPool(th) {
 }
 // Every stage boundary gets a cairn with a lantern post. Unlit it is just stone;
 // once you reach it the flame comes up and it becomes your resume point.
+// The hiding places themselves: alcoves, drums, cracks and walls.
+function drawSecrets() {
+  var i, sx;
+  // ---- tide pocket: a low mouth in the beach rock, drowned at the surge
+  sx = SECRETS[0].x - cam;
+  if (sx > -120 && sx < VW + 120) {
+    var arch = ctx.createLinearGradient(0, GROUND - 66, 0, GROUND + 4);
+    arch.addColorStop(0, 'rgba(10,16,26,0.92)'); arch.addColorStop(1, 'rgba(24,34,44,0.98)');
+    ctx.fillStyle = arch;
+    ctx.beginPath(); ctx.moveTo(sx - 34, GROUND + 2); ctx.quadraticCurveTo(sx - 34, GROUND - 62, sx, GROUND - 66);
+    ctx.quadraticCurveTo(sx + 34, GROUND - 62, sx + 34, GROUND + 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(150,190,180,0.22)'; ctx.lineWidth = 2; ctx.stroke();
+    var wet = ctx.createLinearGradient(0, GROUND - 10, 0, GROUND + 4);
+    wet.addColorStop(0, 'rgba(150,210,235,0.4)'); wet.addColorStop(1, 'rgba(60,120,160,0.15)');
+    ctx.fillStyle = wet; ctx.fillRect(sx - 32, GROUND - 8, 64, 11);
+    if (tideSurge()) {
+      ctx.fillStyle = 'rgba(120,205,240,0.5)';
+      ctx.beginPath(); ctx.moveTo(sx - 34, GROUND + 2);
+      for (var wx = -34; wx <= 34; wx += 8) ctx.lineTo(sx + wx, GROUND - 54 + Math.sin(wx * 0.2 + S.t * 7) * 3);
+      ctx.lineTo(sx + 34, GROUND + 2); ctx.closePath(); ctx.fill();
+    }
+  }
+  // ---- the drum rock
+  sx = 2366 - cam;
+  if (sx > -140 && sx < VW + 140) {
+    if (!S.open.drums) {
+      var rg = ctx.createLinearGradient(sx - 44, GROUND - 96, sx + 44, GROUND);
+      rg.addColorStop(0, '#6a5c48'); rg.addColorStop(1, '#3c3327');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.moveTo(sx - 44, GROUND + 2); ctx.lineTo(sx - 40, GROUND - 74); ctx.lineTo(sx - 12, GROUND - 96);
+      ctx.lineTo(sx + 20, GROUND - 92); ctx.lineTo(sx + 44, GROUND - 66); ctx.lineTo(sx + 44, GROUND + 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,226,168,0.16)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(sx - 30, GROUND - 70); ctx.lineTo(sx - 6, GROUND - 40); ctx.lineTo(sx + 18, GROUND - 62); ctx.stroke();
+    } else {
+      // split open: two halves leaning apart, a lit slot between them
+      var gl = ctx.createLinearGradient(0, GROUND - 80, 0, GROUND);
+      gl.addColorStop(0, 'rgba(255,190,90,0.35)'); gl.addColorStop(1, 'rgba(255,150,60,0.08)');
+      ctx.fillStyle = gl; ctx.fillRect(sx - 20, GROUND - 84, 40, 86);
+      ctx.fillStyle = '#5c5040';
+      ctx.beginPath(); ctx.moveTo(sx - 46, GROUND + 2); ctx.lineTo(sx - 42, GROUND - 72); ctx.lineTo(sx - 20, GROUND - 84);
+      ctx.lineTo(sx - 20, GROUND + 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#4a4034';
+      ctx.beginPath(); ctx.moveTo(sx + 46, GROUND + 2); ctx.lineTo(sx + 42, GROUND - 74); ctx.lineTo(sx + 22, GROUND - 82);
+      ctx.lineTo(sx + 22, GROUND + 2); ctx.closePath(); ctx.fill();
+    }
+    for (i = 0; i < 3; i++) {
+      var dx = DRUM_X[i] - cam, dhit = S.drumsHit[i];
+      ctx.fillStyle = dhit ? '#8a6a44' : '#6d5537';
+      rrect(dx - 9, GROUND - 34, 18, 34, 4); ctx.fill();
+      ctx.fillStyle = dhit ? 'rgba(255,214,138,0.8)' : 'rgba(210,180,130,0.35)';
+      ctx.beginPath(); ctx.ellipse(dx, GROUND - 34, 9, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(20,14,8,0.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(dx - 8, GROUND - 22); ctx.lineTo(dx + 8, GROUND - 22); ctx.moveTo(dx - 8, GROUND - 12); ctx.lineTo(dx + 8, GROUND - 12); ctx.stroke();
+    }
+    if (!S.open.drums && Math.abs(S.p.x - 2366) < 110) drawPrompt(2366 - cam, GROUND - 108, 'X', 'ring the drums');
+  }
+  // ---- cracked seam in the cave wall
+  sx = SEAM_X - cam;
+  if (sx > -80 && sx < VW + 80) {
+    if (!S.open.seam) {
+      var sg = ctx.createLinearGradient(sx - 20, GROUND - 80, sx + 20, GROUND);
+      sg.addColorStop(0, 'rgba(20,26,40,0.9)'); sg.addColorStop(1, 'rgba(8,12,22,0.95)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.moveTo(sx - 22, GROUND + 2); ctx.lineTo(sx - 16, GROUND - 62); ctx.lineTo(sx + 6, GROUND - 84);
+      ctx.lineTo(sx + 20, GROUND - 58); ctx.lineTo(sx + 22, GROUND + 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(130,230,255,' + (0.45 + 0.25 * Math.sin(S.t * 3)) + ')'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(sx - 4, GROUND - 78); ctx.lineTo(sx + 2, GROUND - 50); ctx.lineTo(sx - 6, GROUND - 34); ctx.lineTo(sx + 4, GROUND - 6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx + 2, GROUND - 50); ctx.lineTo(sx + 16, GROUND - 40); ctx.stroke();
+      if (Math.abs(S.p.x - SEAM_X) < 120) drawPrompt(SEAM_X - cam, GROUND - 104, 'X', 'split the seam');
+    } else {
+      ctx.fillStyle = 'rgba(6,9,18,0.95)';
+      ctx.beginPath(); ctx.moveTo(sx - 24, GROUND + 2); ctx.lineTo(sx - 16, GROUND - 64); ctx.lineTo(sx + 8, GROUND - 84);
+      ctx.lineTo(sx + 22, GROUND - 56); ctx.lineTo(sx + 24, GROUND + 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(130,230,255,0.3)'; ctx.lineWidth = 1.4; ctx.stroke();
+    }
+  }
+  // ---- the keeper's wall
+  sx = CACHE_X - cam;
+  if (sx > -80 && sx < VW + 80) {
+    if (!S.open.cache) {
+      for (i = 0; i < 4; i++) {
+        var by = GROUND - 22 - i * 22;
+        ctx.fillStyle = i % 2 ? '#6a6154' : '#5b5347';
+        rrect(sx - 11 + (i % 2 ? 2 : -1), by, 22, 20, 3); ctx.fill();
+        ctx.fillStyle = 'rgba(255,235,200,0.12)'; ctx.fillRect(sx - 10, by + 1, 20, 2);
+      }
+      if (S.cacheHp < 3) {
+        ctx.strokeStyle = 'rgba(20,16,12,0.7)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(sx - 6, GROUND - 70); ctx.lineTo(sx + 3, GROUND - 44); ctx.lineTo(sx - 4, GROUND - 20); ctx.stroke();
+      }
+      if (Math.abs(S.p.x - CACHE_X) < 120) drawPrompt(CACHE_X - cam, GROUND - 112, 'X', 'break the wall');
+    } else {
+      ctx.fillStyle = '#574f44';
+      for (i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(sx - 16 + i * 13, GROUND - 3 + (i % 2) * 2, 8, 4, 0.2 * i, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = 'rgba(8,10,16,0.8)';
+      ctx.beginPath(); ctx.moveTo(sx - 12, GROUND + 2); ctx.lineTo(sx - 8, GROUND - 40); ctx.lineTo(sx + 10, GROUND - 38); ctx.lineTo(sx + 12, GROUND + 2); ctx.closePath(); ctx.fill();
+    }
+  }
+  // ---- the hollow log
+  sx = LOG_X - cam;
+  if (sx > -90 && sx < VW + 90) {
+    var lg2 = ctx.createLinearGradient(sx - 26, GROUND - 30, sx + 26, GROUND);
+    lg2.addColorStop(0, '#6b5233'); lg2.addColorStop(1, '#3d2d1a');
+    ctx.fillStyle = lg2;
+    rrect(sx - 26, GROUND - 30, 52, 32, 14); ctx.fill();
+    ctx.fillStyle = 'rgba(4,6,10,0.92)';
+    ctx.beginPath(); ctx.ellipse(sx + 24, GROUND - 14, 7, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,230,190,0.16)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(sx - 22, GROUND - 26); ctx.quadraticCurveTo(sx, GROUND - 34, sx + 20, GROUND - 26); ctx.stroke();
+    ctx.fillStyle = '#3f6b34';
+    for (i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(sx - 18 + i * 11, GROUND - 32 - (i % 2) * 3, 5, 3, -0.4, 0, Math.PI * 2); ctx.fill(); }
+    if (!S.logUsed && Math.abs(S.p.x - LOG_X) < 100) drawPrompt(LOG_X - cam, GROUND - 70, touchMode ? 'Use' : 'E', 'slip through');
+  }
+}
 function drawCheckpoints() {
   for (var i = 1; i < CHECKPOINTS.length; i++) {
     var cx = CHECKPOINTS[i].x, sx = cx - cam;
@@ -2233,6 +2522,7 @@ function drawSpearShape(len) {
 
 function drawItem(it) {
   if (it.got) return;
+  if (it.type === 'sun' && !sunOpen(it.sid)) return;   // still sealed in its hiding place
   var sx = it.x - cam; if (sx < -30 || sx > VW + 30) return;
   var bob = Math.sin(S.t * 3 + it.x) * 3, y = it.y + bob;
   if (it.type === 'fruit') {
@@ -2244,6 +2534,22 @@ function drawItem(it) {
     ctx.beginPath(); ctx.ellipse(sx, y + 2, 15, 7, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.ellipse(sx, y, 9, 4, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(sx + 14, y + 4); ctx.quadraticCurveTo(sx + 24, y + 10, sx + 30, y + 4); ctx.stroke();
+  } else if (it.type === 'sun') {
+    var pu = 0.75 + 0.25 * Math.sin(S.t * 2.6 + it.x);
+    var gg = ctx.createRadialGradient(sx, y, 2, sx, y, 54);
+    gg.addColorStop(0, 'rgba(255,205,90,' + 0.55 * pu + ')'); gg.addColorStop(0.5, 'rgba(255,170,60,0.2)'); gg.addColorStop(1, 'rgba(255,150,50,0)');
+    ctx.fillStyle = gg; ctx.fillRect(sx - 58, y - 58, 116, 116);
+    // faceted amber stone
+    ctx.save(); ctx.translate(sx, y); ctx.rotate(Math.sin(S.t * 0.9 + it.x) * 0.12);
+    var fg = ctx.createLinearGradient(-9, -11, 9, 11);
+    fg.addColorStop(0, '#fff0bd'); fg.addColorStop(0.45, '#ffc94e'); fg.addColorStop(1, '#d97a1f');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, -3); ctx.lineTo(6, 9); ctx.lineTo(-6, 9); ctx.lineTo(-9, -3); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,235,0.75)';
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(4.4, -3.5); ctx.lineTo(0, 2); ctx.lineTo(-4.4, -3.5); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,60,10,0.45)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 9); ctx.moveTo(-9, -3); ctx.lineTo(9, -3); ctx.stroke();
+    ctx.restore();
   } else if (it.type === 'lantern') {
     var fl = 0.8 + 0.2 * Math.sin(S.t * 9);
     var g2 = ctx.createRadialGradient(sx, y, 2, sx, y, 60); g2.addColorStop(0, 'rgba(255,200,90,' + 0.7 * fl + ')'); g2.addColorStop(1, 'rgba(255,200,90,0)'); ctx.fillStyle = g2; ctx.fillRect(sx - 64, y - 64, 128, 128);
@@ -2698,6 +3004,7 @@ function render() {
   drawBridge();
   drawTutGate();
   drawCheckpoints();
+  drawSecrets();
   drawTower();
   S.items.forEach(drawItem);
   barriers().forEach(function (b) { if (b.on && b.kind === 'vine') drawVines(b); });
@@ -2785,6 +3092,7 @@ function render() {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, H);
   if (S.p.inv > 1.0 && S.mode === 'play') { ctx.fillStyle = 'rgba(220,40,30,' + (S.p.inv - 1.0) * 0.9 + ')'; ctx.fillRect(0, 0, VW, H); }
   if (S.flash > 0) { ctx.fillStyle = 'rgba(255,240,190,' + Math.min(1, S.flash * 1.6) + ')'; ctx.fillRect(0, 0, VW, H); }
+  if (S.blink > 0) { ctx.fillStyle = 'rgba(3,5,10,' + Math.min(1, S.blink) + ')'; ctx.fillRect(0, 0, VW, H); }
 }
 
 // Light shafts, mist, rain, lightning, sea foam and film grain.
@@ -3077,6 +3385,14 @@ function togglePause() { if (S.mode === 'play') pause(); else if (S.mode === 'pa
 // Click or tap anywhere on the game to attack.
 cv.addEventListener('pointerdown', function () { if (S.mode === 'play') attackEdge = true; });
 $('start').addEventListener('click', startGame);
+function hungerCard(on) {
+  var c = $('hcard'), f = $('food');
+  var show = on === undefined ? c.hidden : on;
+  c.hidden = !show;
+  f.setAttribute('aria-expanded', show ? 'true' : 'false');
+}
+$('food').addEventListener('click', function () { hungerCard(); });
+$('food').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hungerCard(); } });
 $('thead').addEventListener('click', function () {
   var t = $('track'), on = t.classList.toggle('open');
   this.setAttribute('aria-expanded', on ? 'true' : 'false');
@@ -3129,6 +3445,7 @@ if (window.__LH_TEST) {
     start: startGame,
     setKeys: function (o) { Object.keys(o).forEach(function (k) { if (k === 'use') { if (o.use) useEdge = true; return; } if (k === 'jump' && o.jump && !keys.jump) jumpEdge = true; keys[k] = o[k]; }); },
     solidAt: solidAt, PLATS: PLATS, PITS: PITS, constants: { GROUND: GROUND, WORLD: WORLD }, render: render, layout: layout, retry: retry,
+    hitSecret: hitSecret, interact: interact, win: win, sunOpen: sunOpen, sunTotal: sunTotal, SECRETS: SECRETS, endingFor: endingFor,
     artOk: function () { return ART_OK.slice(); }, artW: function () { return ART.map(function (i) { return i.naturalWidth; }); }
   };
 }
