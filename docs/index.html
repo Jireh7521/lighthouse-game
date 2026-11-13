@@ -1115,6 +1115,7 @@ function updateEnemy(e, dt) {
   // touching the hunter: land on top of it to stomp it, otherwise it bites
   if (S.mode === 'play') {
     var top = e.y - e.h + 4, bot = e.y - 2;
+    if ((e.type === 'crab' || e.type === 'boar') && Math.abs(e.vx || 0) > 2) ctx.rotate(Math.sin(t * 11) * 0.045);
     if (e.type === 'bat') { top = e.y - e.h; bot = e.y; }
     if (Math.abs(p.x - e.x) < e.w / 2 + 6 && p.y - 4 > top && p.y - 50 < bot) {
       if (p.vy > 60 && p.y - p.vy / 60 <= e.y - e.h + 8) {
