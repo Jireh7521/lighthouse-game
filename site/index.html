@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07110e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
 <title>Lighthouse Hunter</title>
 </head>
 <body>
@@ -173,12 +177,33 @@ button { font: inherit; color: inherit; }
 .namebar { display: flex; gap: 8px; flex-wrap: wrap; }
 .namebar input { flex: 1 1 140px; min-width: 0; min-height: 46px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--fg); font: 500 15px/1 var(--body); }
 .namebar input:focus-visible { outline: 2px solid var(--lamp); outline-offset: 1px; }
+
+/* ---------- phones and tablets: full screen, landscape, no browser chrome */
+html, body { overscroll-behavior: none; }
+html:fullscreen, html:-webkit-full-screen, html.playing { background: #05080f; }
+html:fullscreen body, html:-webkit-full-screen body { padding: 0; }
+html:fullscreen .wrap, html:-webkit-full-screen .wrap { max-width: none; gap: 8px; padding-top: env(safe-area-inset-top, 0px); }
+html:fullscreen .stage, html:-webkit-full-screen .stage { border-radius: 0; border: 0; box-shadow: none; }
+html:fullscreen .bar .mark, html:-webkit-full-screen .bar .mark { font-size: 16px; }
+.bar .bar-actions { display: flex; gap: 8px; align-items: center; }
+.rot {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 26px;
+  background: rgba(4, 9, 16, 0.92); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+}
+.rot-card { display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 320px; }
+.rot-card svg { width: 76px; height: 76px; color: var(--lamp); animation: tilt 2.4s ease-in-out infinite; }
+@keyframes tilt { 0%, 18% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
+.rot-card p { margin: 0; font: 500 14px/1.5 var(--body); color: var(--mute); }
+.rot-card b { display: block; margin-bottom: 5px; font: 400 clamp(19px, 5.4vw, 23px)/1.2 var(--display); color: var(--fg); }
 </style>
 
 <main class="wrap" id="wrap">
   <div class="bar">
     <h1 class="mark">Lighthouse Hunter</h1>
-    <button class="ghost" id="mute" type="button" aria-pressed="false">Sound on</button>
+    <div class="bar-actions">
+      <button class="ghost" id="full" type="button" aria-pressed="false">Full screen</button>
+      <button class="ghost" id="mute" type="button" aria-pressed="false">Sound on</button>
+    </div>
   </div>
   <div class="stage" id="stage">
     <canvas id="cv" role="img" aria-label="Side-scrolling jungle action game"></canvas>
@@ -200,6 +225,13 @@ button { font: inherit; color: inherit; }
       </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="rot" id="rot" hidden>
+      <div class="rot-card">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="15" y="6" width="18" height="36" rx="4"/><path d="M21 10.5h6"/><path d="M32 20a13 13 0 0 1 8 12"/><path d="M40 32l2-4 -4 .6"/></svg>
+        <p><b>Turn your device sideways</b>The hunt plays in landscape. Rotating keeps the full jungle on screen.</p>
+        <button class="primary" id="rotplay" type="button">Play in portrait</button>
+      </div>
+    </div>
     <div class="ov hero" id="ov">
       <div class="card">
         <p class="kicker">Mystery Island</p>
@@ -229,7 +261,7 @@ button { font: inherit; color: inherit; }
 <script>
 (function () {
 // Bump this whenever an art file changes so browsers and the CDN refetch it.
-var ASSET_V = '6';
+var ASSET_V = '7';
 'use strict';
 
 // ---------------------------------------------------------------- constants
@@ -829,6 +861,7 @@ function floater(x, y, text, col) { S.floaters.push({ x: x, y: y, text: text, co
 function startGame() {
   var keepBest = best;
   audioInit();
+  enterFull();
   S = newState();
   best = keepBest;
   spawnWorld();
@@ -2520,6 +2553,8 @@ function layout() {
   var land = innerWidth > innerHeight && innerHeight < 520;
   var showCtl = coarse || innerWidth < 700;
   touchMode = showCtl;
+  coarsePointer = !!coarse;
+  checkRotate();
   ctl.hidden = !showCtl;
   $('keys').hidden = showCtl;
   stage.classList.toggle('ov-ctl', showCtl && land);
@@ -2550,6 +2585,63 @@ function layout() {
 }
 window.addEventListener('resize', layout);
 window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+
+// ---------------------------------------------------------------- phone display
+// Tap start and the game takes the whole screen and, where the browser allows it,
+// locks itself to landscape. iOS has no orientation lock, so a portrait device gets
+// a gentle rotate prompt with a way to keep playing as is.
+var rotDismissed = false, coarsePointer = false;
+function fsActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+}
+function lockLandscape() {
+  try {
+    var so = screen.orientation || screen.msOrientation;
+    if (so && so.lock) { var p = so.lock('landscape'); if (p && p.catch) p.catch(function () {}); }
+  } catch (e) { /* browser refuses: the rotate prompt covers it */ }
+}
+function enterFull() {
+  var el = document.documentElement;
+  if (!fsActive()) {
+    try {
+      var p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' })
+        : el.webkitRequestFullscreen ? el.webkitRequestFullscreen()
+        : el.msRequestFullscreen ? el.msRequestFullscreen() : null;
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* not supported, stay inline */ }
+  }
+  lockLandscape();
+  setTimeout(layout, 260);
+}
+function exitFull() {
+  try {
+    var p = document.exitFullscreen ? document.exitFullscreen()
+      : document.webkitExitFullscreen ? document.webkitExitFullscreen() : null;
+    if (p && p.catch) p.catch(function () {});
+  } catch (e) { /* nothing to leave */ }
+  setTimeout(layout, 260);
+}
+function syncFullBtn() {
+  var b = $('full'); if (!b) return;
+  var on = fsActive();
+  b.textContent = on ? 'Exit full screen' : 'Full screen';
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  document.documentElement.classList.toggle('playing', on);
+}
+function checkRotate() {
+  var portrait = innerHeight > innerWidth * 1.06;
+  var show = portrait && coarsePointer && !rotDismissed && !fsActive();
+  $('rot').hidden = !show;
+}
+['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (ev) {
+  document.addEventListener(ev, function () { syncFullBtn(); setTimeout(layout, 80); });
+});
+if (screen.orientation && screen.orientation.addEventListener) {
+  screen.orientation.addEventListener('change', function () { lockLandscape(); setTimeout(layout, 160); });
+}
+$('full').addEventListener('click', function () { if (fsActive()) exitFull(); else enterFull(); });
+$('rotplay').addEventListener('click', function () { rotDismissed = true; checkRotate(); });
+syncFullBtn();
 
 // ---------------------------------------------------------------- input
 var CODE = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyX: 'throw_', KeyJ: 'throw_', KeyK: 'throw_', KeyZ: 'throw_', KeyE: 'use', ArrowDown: 'use', KeyS: 'use' };
