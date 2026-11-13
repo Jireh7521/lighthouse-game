@@ -2903,7 +2903,6 @@ function pause() {
     '<button class="tiny" id="tutagain" type="button">Replay the basics</button>');
   $('resume').addEventListener('click', resume);
   $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
-if (tutStored()) $('tutagain').hidden = false;   // returning players can replay the lesson
   $('resume').focus();
 }
 function resume() { if (S.mode !== 'paused') return; S.mode = 'play'; $('ov').hidden = true; last = performance.now(); }
@@ -2915,6 +2914,7 @@ $('start').addEventListener('click', startGame);
 $('tutok').addEventListener('click', function () { if (TUT.on) { var st = TUT_STEPS[TUT.step]; if (st) st.pressed = true; } });
 $('tutskip').addEventListener('click', function () { if (TUT.on) tutEnd(); });
 $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
+if (tutStored()) $('tutagain').hidden = false;   // returning players can pick the lesson again
 $('mute').addEventListener('click', function () {
   muted = !muted; this.textContent = muted ? 'Sound off' : 'Sound on'; this.setAttribute('aria-pressed', String(muted));
 });
