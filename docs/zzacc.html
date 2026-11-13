@@ -3634,38 +3634,35 @@ if (window.__LH_TEST) {
 window.addEventListener('load', function () {
   var L = window.__LH; if (!L) return;
   var bar = document.createElement('div');
-  bar.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:700 11px monospace;padding:4px;height:15px;overflow:hidden';
+  bar.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:700 11px monospace;padding:3px;height:14px;white-space:nowrap;overflow:hidden';
   document.body.appendChild(bar);
   var out = [];
-  function say(s) { out.push(s); bar.textContent = out.join(' || ') + ' E:' + (window.__ERR.join(';') || 'ok'); }
+  function say(s) { out.push(s); bar.textContent = out.join(' | ') + ' E:' + (window.__ERR.join(';') || 'ok'); }
   try { localStorage.removeItem('lh_prefs_v1'); } catch (e) {}
+  L.start();
   setTimeout(function () {
-    say('prefs=' + JSON.stringify(document.documentElement.className) + ' setHidden=' + document.getElementById('set').hidden);
-    document.getElementById('titleset').click();
-    say('opened=' + !document.getElementById('set').hidden);
-  }, 600);
-  setTimeout(function () {
-    // difficulty -> hard, then check an enemy has the extra heart
+    var S = L.S;
+    say('play mode=' + S.mode + ' crabUse=' + S.enemies.filter(function (e) { return e.type === 'crab'; }).map(function (e) { return e.hp + '/' + e.maxhp; }).slice(0, 2).join(','));
+    document.getElementById('setbtn').click();
+    say('afterOpen mode=' + L.S.mode + ' visible=' + !document.getElementById('set').hidden);
     document.querySelector('.seg button[data-diff="hard"]').click();
-    say('diff=' + JSON.parse(localStorage.getItem('lh_prefs_v1')).diff + ' note=' + document.getElementById('dnote').textContent.slice(0, 24));
-    // music off + volumes
-    document.getElementById('musT').click();
-    document.getElementById('volV').value = 40; document.getElementById('volV').dispatchEvent(new Event('input'));
-    say('prefs=' + localStorage.getItem('lh_prefs_v1'));
-    // motion reduced
-    document.querySelector('.seg button[data-motion="reduced"]').click();
-    say('reduceClass=' + document.documentElement.className);
-  }, 1200);
+  }, 900);
+  setTimeout(function () {
+    var S = L.S;
+    say('panelOpen mode=' + S.mode + ' diff=' + JSON.parse(localStorage.getItem('lh_prefs_v1')).diff);
+  }, 1500);
+  setTimeout(function () {
+    document.getElementById('setclose').click();
+    say('afterClose mode=' + L.S.mode + ' hidden=' + document.getElementById('set').hidden);
+  }, 2100);
   setTimeout(function () {
     L.start();
-    say('mode=' + L.S.mode);
-  }, 1800);
-  setTimeout(function () {
-    var es = L.S.enemies.filter(function (e) { return e.type === 'crab'; });
-    say('crab hp=' + (es[0] ? es[0].hp + '/' + es[0].maxhp : 'none'));
-    document.getElementById('setclose').click();
-    say('after close mode=' + L.S.mode + ' hidden=' + document.getElementById('set').hidden);
-  }, 2600);
+    var S = L.S;
+    var crab = S.enemies.filter(function (e) { return e.type === 'crab'; })[0];
+    say('restart crab=' + (crab ? crab.hp + '/' + crab.maxhp : 'none') + ' mode=' + S.mode);
+    document.querySelector('.seg button[data-motion="reduced"]') && document.getElementById('setbtn').click();
+    document.getElementById('volV').value = 65; document.getElementById('volV').dispatchEvent(new Event('input'));
+  }, 2900);
 });
 </script>
 </body>
