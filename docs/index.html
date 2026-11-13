@@ -244,6 +244,14 @@ var POINTS = { crab: 50, snake: 100, bat: 100, boar: 200, panther: 400, boss: 20
 function hex(h) { h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
 function mixc(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
 function rgb(c, a) { var s = (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0); return a === undefined ? 'rgb(' + s + ')' : 'rgba(' + s + ',' + a + ')'; }
+// k > 0 lightens towards white, k < 0 darkens towards black. Used for volume shading.
+function tint(c, k) { return k >= 0 ? rgb(mixc(c, [255, 255, 255], k)) : rgb(mixc(c, [0, 0, 0], -k)); }
+// A soft band of coloured air, laid over the far layers so distance reads as depth.
+function hazeBand(c, y, h, a) {
+  var g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, rgb(c, 0)); g.addColorStop(0.55, rgb(c, a)); g.addColorStop(1, rgb(c, 0));
+  ctx.fillStyle = g; ctx.fillRect(0, y, VW, h);
+}
 var COLOR_KEYS = ['skyT', 'skyB', 'gT', 'gB', 'far', 'tree1', 'tree2'];
 var NUM_KEYS = ['sun', 'stars', 'moon', 'sea', 'palm', 'dens', 'grass', 'fire', 'fg'];
 function mkTheme(o) { var r = {}; COLOR_KEYS.forEach(function (k) { r[k] = hex(o[k]); }); NUM_KEYS.forEach(function (k) { r[k] = o[k]; }); return r; }
@@ -1235,26 +1243,57 @@ function rrect(x, y, w, h, r) {
 }
 function ell(x, y, rx, ry, col, rot) { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); ctx.fill(); }
 
-function drawPalm(x, base, h, col) {
-  ctx.strokeStyle = col; ctx.lineCap = 'round';
-  ctx.lineWidth = h * 0.06 + 2;
-  ctx.beginPath(); ctx.moveTo(x, base); ctx.quadraticCurveTo(x + h * 0.05, base - h * 0.5, x + h * 0.16, base - h); ctx.stroke();
+function drawPalm(x, base, h, c) {
   var tx = x + h * 0.16, ty = base - h;
-  ctx.lineWidth = h * 0.05 + 1.5;
-  for (var k = 0; k < 7; k++) {
-    var a = -Math.PI + (k * Math.PI) / 6;
-    var ex = tx + Math.cos(a) * h * 0.4, ey = ty + Math.sin(a) * h * 0.18 + h * 0.12;
-    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx + Math.cos(a) * h * 0.22, ty - h * 0.14, ex, ey); ctx.stroke();
+  var wb = h * 0.05 + 2, wt = h * 0.028 + 1.1;
+  ctx.beginPath();
+  ctx.moveTo(x - wb, base + 3);
+  ctx.quadraticCurveTo(x + h * 0.03 - wt, base - h * 0.55, tx - wt, ty);
+  ctx.lineTo(tx + wt, ty);
+  ctx.quadraticCurveTo(x + h * 0.10 + wt, base - h * 0.55, x + wb, base + 3);
+  ctx.closePath();
+  var tg = ctx.createLinearGradient(x - wb, 0, x + wb, 0);
+  tg.addColorStop(0, tint(c, -0.42)); tg.addColorStop(0.5, tint(c, -0.12)); tg.addColorStop(1, tint(c, 0.26));
+  ctx.fillStyle = tg; ctx.fill();
+  ctx.strokeStyle = tint(c, -0.5); ctx.lineWidth = 1; ctx.globalAlpha = 0.45;
+  for (var r = 1; r < 7; r++) {
+    var tt = r / 7, rx = x + (tx - x) * tt * tt, ry = base - h * tt, rw = wb * (1 - tt * 0.45);
+    ctx.beginPath(); ctx.moveTo(rx - rw, ry); ctx.lineTo(rx + rw, ry); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  for (var pass = 0; pass < 2; pass++) {
+    ctx.fillStyle = pass ? tint(c, 0.2) : tint(c, -0.2);
+    for (var k = 0; k < 8; k++) {
+      var a = -Math.PI * 0.98 + (k * Math.PI) / 6.4 + (pass ? 0.06 : 0);
+      var len = h * (0.42 + 0.07 * Math.sin(k * 2.1));
+      var ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.55 + h * 0.08;
+      var mx = tx + Math.cos(a) * len * 0.55, my = ty + Math.sin(a) * len * 0.3 - h * 0.14;
+      var wd = h * 0.05 * (pass ? 0.7 : 1);
+      ctx.beginPath(); ctx.moveTo(tx, ty);
+      ctx.quadraticCurveTo(mx, my - wd, ex, ey);
+      ctx.quadraticCurveTo(mx, my + wd, tx, ty);
+      ctx.fill();
+    }
   }
 }
-function drawBroad(x, base, h, col) {
-  ctx.fillStyle = col;
-  ctx.fillRect(x - h * 0.04, base - h * 0.7, h * 0.08, h * 0.7);
-  ell(x, base - h * 0.78, h * 0.32, h * 0.22, col);
-  ell(x - h * 0.22, base - h * 0.66, h * 0.22, h * 0.15, col);
-  ell(x + h * 0.24, base - h * 0.68, h * 0.24, h * 0.16, col);
-  ctx.strokeStyle = col; ctx.lineWidth = 1.5;
-  for (var i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(x + i * h * 0.18, base - h * 0.62); ctx.lineTo(x + i * h * 0.18 + 2, base - h * 0.38 - rnd(i + h) * 12); ctx.stroke(); }
+function drawBroad(x, base, h, c) {
+  var tw = h * 0.042, ty = base - h * 0.62;
+  var tg = ctx.createLinearGradient(x - tw, 0, x + tw, 0);
+  tg.addColorStop(0, tint(c, -0.5)); tg.addColorStop(0.55, tint(c, -0.14)); tg.addColorStop(1, tint(c, 0.22));
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.moveTo(x - tw, base + 3); ctx.quadraticCurveTo(x - tw * 0.7, (base + ty) / 2, x - tw * 0.8, ty);
+  ctx.lineTo(x + tw * 0.8, ty); ctx.quadraticCurveTo(x + tw * 0.7, (base + ty) / 2, x + tw, base + 3);
+  ctx.closePath(); ctx.fill();
+  var cl = [[0, -0.8, 0.31, 0.21], [-0.21, -0.67, 0.22, 0.15], [0.22, -0.69, 0.24, 0.16], [-0.1, -0.92, 0.19, 0.14], [0.13, -0.94, 0.17, 0.13]];
+  ctx.fillStyle = tint(c, -0.34);
+  for (var i = 0; i < cl.length; i++) ell(x + cl[i][0] * h, base + cl[i][1] * h, cl[i][2] * h, cl[i][3] * h, tint(c, -0.34));
+  ctx.fillStyle = tint(c, -0.1);
+  for (var j = 0; j < cl.length; j++) ell(x + cl[j][0] * h - h * 0.025, base + cl[j][1] * h - h * 0.03, cl[j][2] * h * 0.76, cl[j][3] * h * 0.72, tint(c, -0.1));
+  ctx.fillStyle = tint(c, 0.2);
+  for (var k = 0; k < 3; k++) ell(x + cl[k][0] * h - h * 0.05, base + cl[k][1] * h - h * 0.05, cl[k][2] * h * 0.4, cl[k][3] * h * 0.36, tint(c, 0.2));
+  ctx.strokeStyle = tint(c, 0.06); ctx.lineWidth = 1.3;
+  for (var v = -1; v <= 1; v++) { ctx.beginPath(); ctx.moveTo(x + v * h * 0.17, base - h * 0.62); ctx.quadraticCurveTo(x + v * h * 0.17 + 3, base - h * 0.42, x + v * h * 0.17 - 2, base - h * 0.27 - rnd(v + h) * 10); ctx.stroke(); }
 }
 function treeLayer(f, tile, hBase, colKey, seed, th) {
   if (th.dens <= 0.01) return;
@@ -1263,15 +1302,34 @@ function treeLayer(f, tile, hBase, colKey, seed, th) {
     if (rnd(i * 7 + seed) > th.dens) continue;
     var sx = i * tile - off + rnd(i + seed) * tile * 0.7;
     var h = hBase * (0.75 + rnd(i * 3 + seed) * 0.6);
-    var col = rgb(th[colKey]);
-    if (th.palm > 0.5) drawPalm(sx, GROUND + 4, h, col); else drawBroad(sx, GROUND + 6, h * 1.25, col);
+    var c = th[colKey];
+    ctx.save(); ctx.translate(sx, GROUND + 4); ctx.scale(1, 0.24);
+    var sg = ctx.createRadialGradient(0, 0, 2, 0, 0, h * 0.34);
+    sg.addColorStop(0, 'rgba(0,0,0,0.3)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sg; ctx.fillRect(-h * 0.34, -h * 0.34, h * 0.68, h * 0.68);
+    ctx.restore();
+    if (th.palm > 0.5) drawPalm(sx, GROUND + 4, h, c); else drawBroad(sx, GROUND + 6, h * 1.25, c);
   }
 }
 
 function drawSky(th, cave) {
   var g = ctx.createLinearGradient(0, 0, 0, GROUND);
-  g.addColorStop(0, rgb(th.skyT)); g.addColorStop(1, rgb(th.skyB));
+  g.addColorStop(0, rgb(th.skyT));
+  g.addColorStop(0.56, rgb(mixc(th.skyT, th.skyB, 0.62)));
+  g.addColorStop(1, rgb(th.skyB));
   ctx.fillStyle = g; ctx.fillRect(0, 0, VW, H);
+  // soft cloud banks drifting above the horizon
+  if (cave < 0.98 && th.dens < 0.9) {
+    var cc = mixc(th.skyB, [255, 255, 255], th.sun > 0.4 ? 0.4 : 0.16);
+    for (var ci = 0; ci < 6; ci++) {
+      var cw = 90 + rnd(ci * 3.7) * 150;
+      var cxp = ((ci * 260 + 40 - cam * 0.05 - S.t * 3) % (VW + 320) + VW + 320) % (VW + 320) - 160;
+      var cyp = 26 + rnd(ci * 5.1) * 96;
+      var cg2 = ctx.createRadialGradient(cxp, cyp, 1, cxp, cyp, cw);
+      cg2.addColorStop(0, rgb(cc, 0.17)); cg2.addColorStop(0.6, rgb(cc, 0.07)); cg2.addColorStop(1, rgb(cc, 0));
+      ctx.fillStyle = cg2; ctx.fillRect(cxp - cw, cyp - cw, cw * 2, cw * 2);
+    }
+  }
   if (th.stars > 0.02 && cave < 1) {
     ctx.fillStyle = '#fff';
     for (var i = 0; i < 46; i++) {
@@ -1318,6 +1376,17 @@ function drawSea(th) {
     var y = 206 + i * 9, x = ((i * 91 + S.t * (10 + i * 2) - cam * 0.2) % (VW + 80)) - 40;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 14, y - 3, x + 28, y); ctx.stroke();
   }
+  // the sky lying on the water, and glitter under the sun
+  var rg = ctx.createLinearGradient(0, 196, 0, GROUND);
+  rg.addColorStop(0, rgb(mixc(th.skyB, [255, 240, 200], 0.45), 0.26));
+  rg.addColorStop(1, rgb(mixc(th.skyT, [255, 255, 255], 0.2), 0.04));
+  ctx.fillStyle = rg; ctx.fillRect(0, 196, VW, GROUND - 196);
+  for (var s2 = 0; s2 < 24; s2++) {
+    var gx2 = ((s2 * 137 + S.t * (12 + (s2 % 5) * 6)) % (VW + 60)) - 30;
+    var gy2 = 202 + rnd(s2 * 4.1) * (GROUND - 208);
+    ctx.globalAlpha = th.sea * (0.1 + 0.22 * Math.abs(Math.sin(S.t * 1.6 + s2)));
+    ctx.fillStyle = '#fff'; ctx.fillRect(gx2, gy2, 5 + rnd(s2) * 10, 1.2);
+  }
   ctx.globalAlpha = 1;
 }
 function drawDistantTower(th) {
@@ -1351,8 +1420,15 @@ function drawCaveWall(cave) {
   // crystals
   for (var c = 0; c < 10; c++) {
     var cx = ((c * 173 + 40 - cam * 0.55) % (VW + 160) + VW + 160) % (VW + 160) - 40, cy = 90 + rnd(c * 13) * 160;
-    ctx.fillStyle = (c % 2 ? 'rgba(255,130,230,' : 'rgba(110,215,255,') + (0.45 + 0.3 * Math.sin(S.t * 2 + c)) + ')';
+    var cc2 = (c % 2 ? '255,130,230,' : '110,215,255,');
+    var gl = ctx.createRadialGradient(cx + 5, cy - 6, 0.5, cx + 5, cy - 6, 19);
+    gl.addColorStop(0, 'rgba(' + cc2 + (0.3 + 0.16 * Math.sin(S.t * 2 + c)) + ')');
+    gl.addColorStop(1, 'rgba(' + cc2 + '0)');
+    ctx.fillStyle = gl; ctx.fillRect(cx - 15, cy - 26, 40, 40);
+    ctx.fillStyle = 'rgba(' + cc2 + (0.5 + 0.3 * Math.sin(S.t * 2 + c)) + ')';
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + 5, cy - 14); ctx.lineTo(cx + 10, cy); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.22 + 0.16 * Math.sin(S.t * 2 + c)) + ')';
+    ctx.beginPath(); ctx.moveTo(cx + 4, cy - 1); ctx.lineTo(cx + 5, cy - 13); ctx.lineTo(cx + 7, cy - 1); ctx.closePath(); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -1361,6 +1437,27 @@ function drawGround(th) {
   var gg = ctx.createLinearGradient(0, GROUND, 0, H);
   gg.addColorStop(0, rgb(th.gB)); gg.addColorStop(1, rgb(mixc(th.gB, [0, 0, 0], 0.65)));
   ctx.fillStyle = gg; ctx.fillRect(0, GROUND, VW, H - GROUND);
+  // sediment layers and grit
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, GROUND, VW, H - GROUND); ctx.clip();
+  for (var li = 1; li <= 3; li++) {
+    var ly = GROUND + li * 10 + 3;
+    ctx.strokeStyle = li % 2 ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.055)';
+    ctx.lineWidth = li === 1 ? 2.2 : 1.2;
+    ctx.beginPath();
+    for (var lx = 0; lx <= VW; lx += 20) {
+      var wy = ly + Math.sin((lx + cam) * 0.028 + li) * 1.8 + Math.sin((lx + cam) * 0.011 + li * 2) * 1.2;
+      if (lx === 0) ctx.moveTo(lx, wy); else ctx.lineTo(lx, wy);
+    }
+    ctx.stroke();
+  }
+  for (var gi = 0; gi < 110; gi++) {
+    var qx = (gi * 79 + 13) % VW, qy = GROUND + 6 + ((gi * 41) % Math.max(10, H - GROUND - 8));
+    var qr = rnd(gi * 2.3);
+    ctx.fillStyle = qr > 0.62 ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.11)';
+    ctx.fillRect(qx, qy, 1 + qr * 2.6, 1 + qr);
+  }
+  ctx.restore();
   // pits and chasm
   var holes = PITS.map(function (p) { return { x: p.x, w: p.w }; });
   holes.push({ x: CHASM.x + CHASM.w * S.bridgeT, w: CHASM.w * (1 - S.bridgeT) });
@@ -1836,8 +1933,10 @@ function render() {
   drawSky(th, cave);
   drawSea(th);
   drawFar(th);
+  if (cave < 0.7) hazeBand(mixc(th.skyB, th.far, 0.55), GROUND - 110, 130, 0.24);
   drawDistantTower(th);
   treeLayer(0.3, 230, 150, 'tree2', 1, th);
+  if (cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
   treeLayer(0.6, 210, 190, 'tree1', 50, th);
   drawCaveWall(cave);
   drawGround(th);
@@ -1912,6 +2011,13 @@ function render() {
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(dk, 0, 0); ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   }
+  // colour grade: cool air up top, warm light near the horizon
+  var grade = ctx.createLinearGradient(0, 0, 0, H);
+  grade.addColorStop(0, 'rgba(60,90,190,0.14)');
+  grade.addColorStop(0.55, 'rgba(255,190,120,0.06)');
+  grade.addColorStop(1, 'rgba(30,10,50,0.16)');
+  ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = grade; ctx.fillRect(0, 0, VW, H);
+  ctx.globalCompositeOperation = 'source-over';
   // vignette and hit flash
   var vg = ctx.createRadialGradient(VW / 2, H / 2, H * 0.55, VW / 2, H / 2, VW * 0.65);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
