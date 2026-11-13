@@ -2080,9 +2080,14 @@ function drawPaintedLayer(i, alpha) {
   var ir = im.naturalWidth / im.naturalHeight, cr = dw / dh, sx = 0, sy = 0, sw = im.naturalWidth, sh = im.naturalHeight;
   if (ir > cr) { sw = sh * cr; sx = (im.naturalWidth - sw) * 0.5; }
   else { sh = sw / cr; sy = (im.naturalHeight - sh) * 0.55; }
-  var drift = -pad - ((cam * 0.045) % pad);
+  var br = 1.048 + 0.014 * Math.sin(S.t * 0.13 + i * 2.1);
+  var drift = -pad - ((cam * 0.045) % pad) + Math.sin(S.t * 0.071 + i) * 9 + (S.p.vx || 0) * 0.025;
+  var driftY = Math.sin(S.t * 0.05 + i * 1.3) * 3;
+  ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.drawImage(im, sx, sy, sw, sh, drift, 0, dw, dh);
+  ctx.translate(VW / 2, H * 0.56); ctx.scale(br, br); ctx.translate(-VW / 2, -H * 0.56);
+  ctx.drawImage(im, sx, sy, sw, sh, drift, driftY, dw, dh);
+  ctx.restore();
   ctx.globalAlpha = 1;
 }
 function drawBackdrop() {
@@ -2097,6 +2102,144 @@ function drawBackdrop() {
   return true;
 }
 
+// ---------------------------------------------------------------- living air
+// The plates are photographs, so the life has to come from what moves between
+// the camera and them: cloud shadow, ground haze, drifting motes, wind, weather
+// and the out-of-focus grass and leaves you are standing behind.
+var MOTES = (function () {
+  var m = [];
+  for (var i = 0; i < 72; i++) m.push({
+    x: rnd(i * 3.1), y: rnd(i * 7.7), r: 0.5 + rnd(i * 1.3) * 1.7,
+    sp: 0.35 + rnd(i * 5.1) * 1.3, ph: rnd(i * 2.2) * 6.283,
+    dp: 0.25 + rnd(i * 9.3) * 0.9, sw: rnd(i * 4.4) * 6.283
+  });
+  return m;
+})();
+var LIFE_TINT = ['#ffe2b4', '#e9ffb4', '#a8ecff', '#cfe0ff', '#e2edff'];
+var lFlash = 0;
+function plateLife(th) {
+  if (gfxLite) return;
+  var zi = zoneIndex(cam + VW / 2), t = S.t;
+  // cloud shadow rolling across the whole view
+  for (var c = 0; c < 2; c++) {
+    var cw = 460 + c * 200;
+    var cx0 = ((t * (10 + c * 7) + c * 300 - cam * 0.1) % (VW + cw * 2) + VW + cw * 2) % (VW + cw * 2) - cw;
+    var cy = 34 + c * 64;
+    var g = ctx.createRadialGradient(cx0 + cw / 2, cy, 6, cx0 + cw / 2, cy, cw * 0.52);
+    g.addColorStop(0, 'rgba(6,9,20,' + (0.075 + c * 0.028) + ')'); g.addColorStop(1, 'rgba(6,9,20,0)');
+    ctx.fillStyle = g; ctx.fillRect(cx0, 0, cw, H);
+  }
+  // the air thickens toward the ground
+  var hz = ctx.createLinearGradient(0, GROUND - 130, 0, GROUND + 8);
+  hz.addColorStop(0, 'rgba(255,236,208,0)'); hz.addColorStop(0.6, 'rgba(255,236,208,0.05)'); hz.addColorStop(1, 'rgba(255,236,208,0.11)');
+  ctx.fillStyle = hz; ctx.fillRect(0, GROUND - 130, VW, 138);
+  // dust, pollen, sand and spray hanging in the light
+  ctx.fillStyle = LIFE_TINT[zi];
+  for (var i = 0; i < MOTES.length; i++) {
+    var m = MOTES[i];
+    var x = ((m.x * (VW + 80) - cam * m.dp * 0.4 + t * m.sp * 7) % (VW + 80) + VW + 80) % (VW + 80) - 40;
+    var y = m.y * H * 0.8 + Math.sin(t * 0.6 + m.ph) * 12 + Math.sin(t * 1.7 + m.sw) * 3;
+    ctx.globalAlpha = 0.1 + 0.42 * (0.5 + 0.5 * Math.sin(t * 1.4 + m.ph));
+    ctx.beginPath(); ctx.arc(x, y, m.r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (zi === 2) {                                   // the cave breathing with its own light
+    var pu = 0.5 + 0.5 * Math.sin(t * 0.9);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    var cg = ctx.createRadialGradient(VW * 0.48, H * 0.44, 20, VW * 0.48, H * 0.44, VW * 0.62);
+    cg.addColorStop(0, 'rgba(110,215,255,' + (0.09 + 0.07 * pu) + ')'); cg.addColorStop(1, 'rgba(110,215,255,0)');
+    ctx.fillStyle = cg; ctx.fillRect(0, 0, VW, H); ctx.restore();
+  }
+  if (zi === 3) {                                   // a storm you can feel coming
+    if (Math.random() < 0.0032) lFlash = 1;
+    if (lFlash > 0.01) {
+      ctx.fillStyle = 'rgba(198,222,255,' + (0.16 * lFlash) + ')'; ctx.fillRect(0, 0, VW, H);
+      lFlash *= 0.82;
+    }
+  }
+  if (zi === 1) {                                   // dappled sun moving on the forest floor
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (var d = 0; d < 5; d++) {
+      var dx = ((d * 150 + t * 5 - cam * 0.25) % (VW + 200) + VW + 200) % (VW + 200) - 100;
+      var dy = GROUND - 6 + Math.sin(t * 0.5 + d) * 3;
+      ctx.globalAlpha = 0.05 + 0.03 * Math.sin(t * 0.9 + d * 2);
+      ctx.fillStyle = '#ffe9a8';
+      ctx.beginPath(); ctx.ellipse(dx, dy, 60, 9, 0, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+}
+// Grass and leaves close enough to the lens to be out of focus.
+function drawNearLayer(th) {
+  if (gfxLite) return;
+  var zi = zoneIndex(cam + VW / 2), off = cam * 1.55, t = S.t;
+  var ink = rgb(mixc(th.tree2, [0, 0, 0], 0.6));
+  ctx.save();
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = ink;
+  for (var i = Math.floor(off / 46) - 1; i < (off + VW) / 46 + 1; i++) {
+    if (rnd(i * 5.7 + 3) > 0.52) continue;
+    var bx = i * 46 - off + rnd(i * 2.1) * 22, hgt = 15 + rnd(i * 3.9) * 32, sway = Math.sin(t * 1.1 + i * 0.7) * 3.2;
+    ctx.beginPath(); ctx.moveTo(bx - 5, H + 6);
+    ctx.quadraticCurveTo(bx - 2 + sway * 0.5, H - hgt * 0.6, bx + sway, H - hgt);
+    ctx.quadraticCurveTo(bx + 3 + sway * 0.5, H - hgt * 0.6, bx + 6, H + 6);
+    ctx.closePath(); ctx.fill();
+  }
+  if (th.fg > 0.05 || zi === 2) {
+    ctx.fillStyle = rgb(mixc(th.tree1, [0, 0, 0], 0.72));
+    for (var j = Math.floor(off / 230) - 1; j < (off + VW) / 230 + 1; j++) {
+      if (rnd(j * 13.3) > 0.46) continue;
+      var lx = j * 230 - off + rnd(j * 4.4) * 90, sw2 = Math.sin(t * 0.8 + j) * 4;
+      ctx.beginPath(); ctx.moveTo(lx, -8);
+      ctx.quadraticCurveTo(lx + 28 + sw2, 30, lx + 50 + sw2, 72);
+      ctx.quadraticCurveTo(lx + 14 + sw2, 28, lx + 10, -8);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+// Small sounds that prove something is alive out there.
+function chirp(f0, f1, dur, type, vol, delay) {
+  if (muted || !audioInit() || !ac) return;
+  try {
+    var o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + (delay || 0);
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.03, dur * 0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.06);
+  } catch (e) {}
+}
+var lifeSnd = 3;
+function lifeTick(dt) {
+  if (S.mode !== 'play' || muted || !ac) return;
+  lifeSnd -= dt;
+  if (lifeSnd > 0) return;
+  lifeSnd = 3.4 + Math.random() * 6.5;
+  var zi = zoneIndex(S.p.x), r = Math.random();
+  if (zi === 0) {
+    if (r < 0.6) { chirp(720, 1450, 0.18, 'sine', 0.045); chirp(880, 1180, 0.13, 'sine', 0.03, 0.21); }
+    else noise(0.7, 380, 900, 'bandpass', 0.02, 0.7);
+  } else if (zi === 1) {
+    if (r < 0.55) { chirp(2100, 3100, 0.07, 'sine', 0.03); chirp(2400, 2900, 0.05, 'sine', 0.022, 0.1); }
+    else if (r < 0.8) chirp(340, 250, 0.4, 'triangle', 0.03);
+    else noise(0.5, 2600, 3200, 'bandpass', 0.018, 0.9);
+  } else if (zi === 2) {
+    if (r < 0.7) chirp(1500, 240, 0.14, 'sine', 0.05);
+    else noise(0.9, 120, 60, 'lowpass', 0.035, 0.6);
+  } else if (zi === 3) {
+    if (r < 0.45) noise(1.7, 130, 55, 'lowpass', 0.05, 0.6);
+    else noise(0.9, 500, 1100, 'bandpass', 0.028, 0.8);
+  } else {
+    if (r < 0.5) noise(1.1, 420, 900, 'bandpass', 0.035, 0.8);
+    else if (r < 0.8) chirp(1150, 1600, 0.22, 'sine', 0.028);
+    else chirp(700, 1300, 0.16, 'sine', 0.025);
+  }
+}
+
 function render() {
   cam = S.cam;
   var shx = S.shake > 0 ? (Math.random() - 0.5) * 7 * Math.min(1, S.shake * 3) : 0;
@@ -2104,6 +2247,7 @@ function render() {
   ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   var cx = cam + VW / 2, th = themeAt(cx), cave = caveAmt(cx);
   var artDrawn = drawBackdrop();
+  plateLife(th);
   if (!artDrawn) {
     drawSky(th, cave);
     drawSea(th);
@@ -2159,6 +2303,7 @@ function render() {
     });
     ctx.globalAlpha = 1;
   }
+  drawNearLayer(th);
   // floating text
   S.floaters.forEach(function (f) {
     ctx.globalAlpha = clamp(1.1 - f.t, 0, 1); ctx.fillStyle = f.col; ctx.font = '400 15px "Lilita One", sans-serif'; ctx.textAlign = 'center';
@@ -2445,6 +2590,7 @@ function frame(now) {
   }
   if (S.mode === 'title') { S.t += dt; S.p.anim += dt; S.cam = 0; updateHud(); }
   ambientUpdate();
+  lifeTick(dt);
   render();
   requestAnimationFrame(frame);
 }
