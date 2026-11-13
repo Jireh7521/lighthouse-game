@@ -186,21 +186,17 @@ html:fullscreen .wrap, html:-webkit-full-screen .wrap { max-width: none; gap: 8p
 html:fullscreen .stage, html:-webkit-full-screen .stage { border-radius: 0; border: 0; box-shadow: none; }
 html:fullscreen .bar .mark, html:-webkit-full-screen .bar .mark { font-size: 16px; }
 .bar .bar-actions { display: flex; gap: 8px; align-items: center; }
-.rot {
-  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 26px;
-  background: rgba(4, 9, 16, 0.92); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
-}
-.rot-card { display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 320px; }
-.rot-card svg { width: 76px; height: 76px; color: var(--lamp); animation: tilt 2.4s ease-in-out infinite; }
-@keyframes tilt { 0%, 18% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
-.rot-card p { margin: 0; font: 500 14px/1.5 var(--body); color: var(--mute); }
-.rot-card b { display: block; margin-bottom: 5px; font: 400 clamp(19px, 5.4vw, 23px)/1.2 var(--display); color: var(--fg); }
+.fl { height: 100%; overflow: hidden; }
+html.fl body { padding: 0; }
+html.fl .stage { border-radius: 10px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.8); }
+#flip[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); }
 </style>
 
 <main class="wrap" id="wrap">
   <div class="bar">
     <h1 class="mark">Lighthouse Hunter</h1>
     <div class="bar-actions">
+      <button class="ghost" id="flip" type="button" aria-pressed="false" hidden title="Turn the game into landscape">Rotate</button>
       <button class="ghost" id="full" type="button" aria-pressed="false">Full screen</button>
       <button class="ghost" id="mute" type="button" aria-pressed="false">Sound on</button>
     </div>
@@ -225,13 +221,6 @@ html:fullscreen .bar .mark, html:-webkit-full-screen .bar .mark { font-size: 16p
       </div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <div class="rot" id="rot" hidden>
-      <div class="rot-card">
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="15" y="6" width="18" height="36" rx="4"/><path d="M21 10.5h6"/><path d="M32 20a13 13 0 0 1 8 12"/><path d="M40 32l2-4 -4 .6"/></svg>
-        <p><b>Turn your device sideways</b>The hunt plays in landscape. Rotating keeps the full jungle on screen.</p>
-        <button class="primary" id="rotplay" type="button">Play in portrait</button>
-      </div>
-    </div>
     <div class="ov hero" id="ov">
       <div class="card">
         <p class="kicker">Mystery Island</p>
@@ -2550,23 +2539,30 @@ function drawAtmosphere(th, cave) {
 var stage = $('stage'), ctl = $('ctl'), barEl = document.querySelector('.bar');
 function layout() {
   var coarse = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
-  var land = innerWidth > innerHeight && innerHeight < 520;
-  var showCtl = coarse || innerWidth < 700;
-  touchMode = showCtl;
   coarsePointer = !!coarse;
-  checkRotate();
+  // A phone or tablet held upright gets its play area turned a quarter turn, so the game
+  // is already a landscape frame and reads the moment the device is tipped sideways.
+  var upright = innerHeight > innerWidth * 1.02;
+  forced = coarsePointer && rotDeg() !== 0 && !fsActive() && upright;
+  applyRotation(forced);
+  var flipBtn = $('flip');
+  if (flipBtn) flipBtn.hidden = !(coarsePointer && upright);
+  var PW = forced ? innerHeight : innerWidth, PH = forced ? innerWidth : innerHeight;
+  var land = forced || (innerWidth > innerHeight && innerHeight < 520);
+  var showCtl = coarse || PW < 700;
+  touchMode = showCtl;
   ctl.hidden = !showCtl;
   $('keys').hidden = showCtl;
   stage.classList.toggle('ov-ctl', showCtl && land);
-  var wrapW = Math.min(innerWidth - 32, 960);
+  var wrapW = Math.min(PW - (forced ? 8 : 32), forced ? PW : 960);
   var ctlH = showCtl && !land ? Math.max(96, ctl.offsetHeight || 0) : 0;   // the stick made this row taller
-  var hAvail = Math.max(200, innerHeight - barEl.offsetHeight - ctlH - (land ? 14 : 48));
+  var hAvail = Math.max(200, PH - barEl.offsetHeight - ctlH - (land ? (forced ? 8 : 14) : 48));
   var asp = wrapW / hAvail;
   VW = asp >= 1.45 ? 640 : (asp >= 1.0 ? 480 : 340);
   var w = Math.min(wrapW, hAvail * VW / H), h = w * H / VW;
   stage.style.width = Math.round(w) + 'px'; stage.style.height = Math.round(h) + 'px';
   // in landscape the controls float over the game, so line them up with the frame itself
-  if (showCtl && land) {
+  if (showCtl && land && !forced) {
     var sr = stage.getBoundingClientRect();
     ctl.style.position = 'absolute';
     ctl.style.left = Math.round(sr.left + scrollX) + 'px';
@@ -2590,7 +2586,8 @@ window.addEventListener('orientationchange', function () { setTimeout(layout, 12
 // Tap start and the game takes the whole screen and, where the browser allows it,
 // locks itself to landscape. iOS has no orientation lock, so a portrait device gets
 // a gentle rotate prompt with a way to keep playing as is.
-var rotDismissed = false, coarsePointer = false;
+var coarsePointer = false, forced = false, rotStep = 0;
+var ROT_STEPS = [90, -90, 0];   // quarter turn one way, the other way, or leave it upright
 function fsActive() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
 }
@@ -2628,10 +2625,24 @@ function syncFullBtn() {
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
   document.documentElement.classList.toggle('playing', on);
 }
-function checkRotate() {
-  var portrait = innerHeight > innerWidth * 1.06;
-  var show = portrait && coarsePointer && !rotDismissed && !fsActive();
-  $('rot').hidden = !show;
+function rotDeg() { return ROT_STEPS[rotStep]; }
+function applyRotation(on) {
+  var w = document.querySelector('.wrap'); if (!w) return;
+  var s = w.style, root = document.documentElement;
+  if (on) {
+    s.position = 'fixed'; s.top = '50%'; s.left = '50%';
+    s.width = innerHeight + 'px'; s.height = innerWidth + 'px';
+    s.maxWidth = 'none'; s.margin = '0'; s.padding = '0'; s.overflow = 'hidden';
+    s.transformOrigin = '50% 50%';
+    s.transform = 'translate(-50%, -50%) rotate(' + rotDeg() + 'deg)';
+    root.classList.add('fl');
+  } else if (root.classList.contains('fl')) {
+    ['position', 'top', 'left', 'width', 'height', 'maxWidth', 'margin', 'padding', 'overflow', 'transformOrigin', 'transform']
+      .forEach(function (k) { s[k] = ''; });
+    root.classList.remove('fl');
+  }
+  var b = $('flip');
+  if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
 }
 ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (ev) {
   document.addEventListener(ev, function () { syncFullBtn(); setTimeout(layout, 80); });
@@ -2640,7 +2651,10 @@ if (screen.orientation && screen.orientation.addEventListener) {
   screen.orientation.addEventListener('change', function () { lockLandscape(); setTimeout(layout, 160); });
 }
 $('full').addEventListener('click', function () { if (fsActive()) exitFull(); else enterFull(); });
-$('rotplay').addEventListener('click', function () { rotDismissed = true; checkRotate(); });
+$('flip').addEventListener('click', function () {
+  rotStep = (rotStep + 1) % ROT_STEPS.length;   // quarter turn, the other quarter, upright
+  layout();
+});
 syncFullBtn();
 
 // ---------------------------------------------------------------- input
@@ -2711,7 +2725,9 @@ window.addEventListener('gamepadconnected', function () { padLive = false; });
     knob.style.transform = 'translate(' + (nx * R).toFixed(1) + 'px,' + (ny * R * 0.75).toFixed(1) + 'px)';
   }
   function read(e) {
-    var dx = e.clientX - cx, dy = e.clientY - cy, d = Math.sqrt(dx * dx + dy * dy);
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    if (forced && rotDeg() !== 0) { var t0 = dx; dx = rotDeg() > 0 ? dy : -dy; dy = rotDeg() > 0 ? -t0 : t0; }
+    var d = Math.sqrt(dx * dx + dy * dy);
     if (d < 0.001) { place(0, 0); stickAx = 0; return; }
     var k = Math.min(1, d / R), nx = (dx / d) * k, ny = (dy / d) * k;
     place(nx, ny);
