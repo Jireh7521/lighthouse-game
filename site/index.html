@@ -2062,20 +2062,61 @@ var flies = [];
 var DUST = ['#e8d6a4', '#6b5a38', '#8a949c', '#9a8a6a', '#7f8a90'];
 for (var fi = 0; fi < 26; fi++) flies.push({ x: rnd(fi) * 700, y: 80 + rnd(fi + 40) * 190, ph: rnd(fi + 7) * 6 });
 
+// ---------------------------------------------------------------- painted backdrops
+// One hand-painted vista per zone, loaded from art/. If a file is missing the
+// procedural sky keeps drawing, so the game never shows a blank frame.
+var ART_NAMES = ['beach', 'jungle', 'cave', 'bridge', 'lighthouse'];
+var ART = [], ART_OK = [];
+(function loadPaintedArt() {
+  for (var i = 0; i < ART_NAMES.length; i++) (function (i) {
+    var im = new Image();
+    im.onload = function () { ART_OK[i] = im.naturalWidth > 0; };
+    im.onerror = function () { ART_OK[i] = false; };
+    im.src = 'art/' + ART_NAMES[i] + '.webp';
+    ART[i] = im;
+  })(i);
+})();
+function drawPaintedLayer(i, alpha) {
+  var im = ART[i];
+  if (!im || !ART_OK[i] || alpha <= 0.004) return;
+  var pad = VW * 0.09;                       // slack for the slow parallax drift
+  var dw = VW + pad * 2, dh = H;
+  var ir = im.naturalWidth / im.naturalHeight, cr = dw / dh, sx = 0, sy = 0, sw = im.naturalWidth, sh = im.naturalHeight;
+  if (ir > cr) { sw = sh * cr; sx = (im.naturalWidth - sw) * 0.5; }
+  else { sh = sw / cr; sy = (im.naturalHeight - sh) * 0.55; }
+  var drift = -pad - ((cam * 0.045) % pad);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(im, sx, sy, sw, sh, drift, 0, dw, dh);
+  ctx.globalAlpha = 1;
+}
+function drawBackdrop() {
+  var cx = cam + VW / 2, i = zoneIndex(cx), z = ZONES_META[i], j = -1, f = 0;
+  if (i < ZONES_META.length - 1 && cx > z.x1 - 220) { j = i + 1; f = sm((cx - (z.x1 - 220)) / 220); }
+  else if (i > 0 && cx < z.x0 + 220) { j = i - 1; f = sm((z.x0 + 220 - cx) / 220); }
+  var a = ART_OK[i], b = j >= 0 && ART_OK[j];
+  if (!a && !b) return false;
+  if (a && b) { drawPaintedLayer(i, 1); drawPaintedLayer(j, f); }
+  else if (a) drawPaintedLayer(i, 1);
+  else drawPaintedLayer(j, 1);
+  return true;
+}
+
 function render() {
   cam = S.cam;
   var shx = S.shake > 0 ? (Math.random() - 0.5) * 7 * Math.min(1, S.shake * 3) : 0;
   var shy = S.shake > 0 ? (Math.random() - 0.5) * 5 * Math.min(1, S.shake * 3) : 0;
   ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   var cx = cam + VW / 2, th = themeAt(cx), cave = caveAmt(cx);
-  drawSky(th, cave);
-  drawSea(th);
-  drawFar(th);
-  if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.far, 0.55), GROUND - 110, 130, 0.24);
-  drawDistantTower(th);
-  treeLayer(0.3, 230, 150, 'tree2', 1, th);
-  if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
-  treeLayer(0.6, 210, 190, 'tree1', 50, th);
+  if (!drawBackdrop()) {
+    drawSky(th, cave);
+    drawSea(th);
+    drawFar(th);
+    if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.far, 0.55), GROUND - 110, 130, 0.24);
+    drawDistantTower(th);
+    treeLayer(0.3, 230, 150, 'tree2', 1, th);
+    if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
+    treeLayer(0.6, 210, 190, 'tree1', 50, th);
+  }
   drawCaveWall(cave);
   drawGround(th);
   drawPlatforms(th);
