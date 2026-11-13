@@ -2177,7 +2177,9 @@ function drawNearLayer(th) {
   ctx.save();
   ctx.globalAlpha = 0.88;
   ctx.fillStyle = ink;
+  // grass on the shore, forest and cliff; wet stone instead of grass deep in the cave
   for (var i = Math.floor(off / 46) - 1; i < (off + VW) / 46 + 1; i++) {
+    if (zi === 2) break;
     if (rnd(i * 5.7 + 3) > 0.52) continue;
     var bx = i * 46 - off + rnd(i * 2.1) * 22, hgt = 15 + rnd(i * 3.9) * 32, sway = Math.sin(t * 1.1 + i * 0.7) * 3.2;
     ctx.beginPath(); ctx.moveTo(bx - 5, H + 6);
@@ -2185,7 +2187,14 @@ function drawNearLayer(th) {
     ctx.quadraticCurveTo(bx + 3 + sway * 0.5, H - hgt * 0.6, bx + 6, H + 6);
     ctx.closePath(); ctx.fill();
   }
-  if (th.fg > 0.05 || zi === 2) {
+  if (zi === 2) {
+    ctx.fillStyle = rgb(mixc([40, 46, 58], [0, 0, 0], 0.55));
+    for (var q = Math.floor(off / 130) - 1; q < (off + VW) / 130 + 1; q++) {
+      var qx = q * 130 - off + rnd(q * 6.2) * 60, qw = 34 + rnd(q * 2.8) * 46;
+      ctx.beginPath(); ctx.ellipse(qx, H + 12, qw, 26 + rnd(q * 3.3) * 16, 0, Math.PI, 0); ctx.fill();
+    }
+  }
+  if (zi !== 2 && th.fg > 0.05) {
     ctx.fillStyle = rgb(mixc(th.tree1, [0, 0, 0], 0.72));
     for (var j = Math.floor(off / 230) - 1; j < (off + VW) / 230 + 1; j++) {
       if (rnd(j * 13.3) > 0.46) continue;
