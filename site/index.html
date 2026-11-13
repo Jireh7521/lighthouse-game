@@ -1888,7 +1888,7 @@ function drawHunter() {
 // ------------------------------------------------ painted enemies
 // Each creature is one or two painted poses, sized to its collision box and
 // anchored on its feet so state changes never shift it off the ground.
-var ENEMY_META = {"crab1":{"w":30.0,"h":22.0,"dx":-15.0,"dy":-22.0},"crab2":{"w":28.5,"h":22.0,"dx":-14.25,"dy":-22.0},"snake1":{"w":29.0,"h":26.0,"dx":-14.5,"dy":-26.0},"bat1":{"w":28.0,"h":26.0,"dx":-14.0,"dy":-26.0},"bat2":{"w":19.5,"h":26.0,"dx":-9.75,"dy":-26.0},"boar1":{"w":44.5,"h":34.0,"dx":-22.25,"dy":-34.0},"boar2":{"w":54.0,"h":34.0,"dx":-27.0,"dy":-34.0},"panther1":{"w":58.5,"h":34.0,"dx":-29.25,"dy":-34.0},"panther2":{"w":72.0,"h":34.0,"dx":-36.0,"dy":-34.0},"boss1":{"w":82.0,"h":64.0,"dx":-41.0,"dy":-64.0},"boss2":{"w":86.0,"h":64.0,"dx":-43.0,"dy":-64.0}};
+var ENEMY_META = {"crab1":{"w":43.5,"h":32.0,"dx":-21.75,"dy":-32.0},"crab2":{"w":41.5,"h":32.0,"dx":-20.75,"dy":-32.0},"snake1":{"w":36.0,"h":32.0,"dx":-18.0,"dy":-32.0},"bat1":{"w":32.5,"h":30.0,"dx":-16.25,"dy":-30.0},"bat2":{"w":22.5,"h":30.0,"dx":-11.25,"dy":-30.0},"boar1":{"w":52.0,"h":40.0,"dx":-26.0,"dy":-40.0},"boar2":{"w":63.5,"h":40.0,"dx":-31.75,"dy":-40.0},"panther1":{"w":76.0,"h":44.0,"dx":-38.0,"dy":-44.0},"panther2":{"w":93.5,"h":44.0,"dx":-46.75,"dy":-44.0},"boss1":{"w":118.0,"h":92.0,"dx":-59.0,"dy":-92.0},"boss2":{"w":124.0,"h":92.0,"dx":-62.0,"dy":-92.0}};
 var ENEMY_SPR = {};
 (function loadEnemies() {
   for (var k in ENEMY_META) (function (k) {
@@ -1933,6 +1933,7 @@ function drawEnemy(e) {
     ctx.restore();
   }
 
+  if (e.type !== 'bat' && !e.dying) shadowAt(e.x, e.y, (s ? s.w : e.w) * 0.42, 0.34);
   if (s && s.ready) {
     // a little life: bats beat, everything else breathes
     var amp = e.type === 'bat' ? 2.6 : (e.type === 'boss' || e.type === 'panther' ? 0.6 : 0.9);
