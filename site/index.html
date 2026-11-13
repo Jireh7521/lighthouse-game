@@ -1514,6 +1514,18 @@ function drawGround(th) {
   var gg = ctx.createLinearGradient(0, GROUND, 0, H);
   gg.addColorStop(0, rgb(th.gB)); gg.addColorStop(1, rgb(mixc(th.gB, [0, 0, 0], 0.65)));
   ctx.fillStyle = gg; ctx.fillRect(0, GROUND, VW, H - GROUND);
+  // the surface itself: a photo of real sand, soil, rock or planks, tiled and darkened with depth
+  var gtex = groundTexAt(zoneIndex(cam + VW / 2));
+  if (gtex) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, GROUND, VW, H - GROUND); ctx.clip();
+    var TW = 384, TH = 52, gx = -((cam * 1.0) % TW);
+    for (var tx = gx - TW; tx < VW + TW; tx += TW) ctx.drawImage(gtex, tx, GROUND, TW, TH);
+    var dg2 = ctx.createLinearGradient(0, GROUND, 0, H);
+    dg2.addColorStop(0, 'rgba(0,0,0,0.10)'); dg2.addColorStop(0.5, 'rgba(0,0,0,0.40)'); dg2.addColorStop(1, 'rgba(0,0,0,0.78)');
+    ctx.fillStyle = dg2; ctx.fillRect(0, GROUND, VW, H - GROUND);
+    ctx.restore();
+  }
   // sediment layers and grit
   ctx.save();
   ctx.beginPath(); ctx.rect(0, GROUND, VW, H - GROUND); ctx.clip();
@@ -1678,6 +1690,14 @@ function drawPlatforms(th) {
     var bg = ctx.createLinearGradient(0, pl.y, 0, pl.y + 18);
     bg.addColorStop(0, rgb(th.gT)); bg.addColorStop(0.45, rgb(mixc(th.gB, th.gT, 0.35))); bg.addColorStop(1, rgb(mixc(th.gB, [0, 0, 0], 0.55)));
     ctx.fillStyle = bg; rrect(sx - 2, pl.y, pl.w + 4, 17, 5); ctx.fill();
+    var ptex = groundTexAt(zoneIndex(pl.x));
+    if (ptex) {
+      ctx.save(); rrect(sx - 2, pl.y, pl.w + 4, 17, 5); ctx.clip();
+      ctx.globalAlpha = 0.62;
+      var pOff = pl.x % 384;
+      for (var pt = sx - 2 - pOff; pt < sx + pl.w; pt += 384) ctx.drawImage(ptex, pt, pl.y - 16, 384, 52);
+      ctx.globalAlpha = 1; ctx.restore();
+    }
     // lit cap
     ctx.fillStyle = 'rgba(255,244,214,0.3)'; rrect(sx, pl.y + 0.6, pl.w, 3, 2); ctx.fill();
     // brush strokes for stone grain
@@ -2031,6 +2051,17 @@ for (var fi = 0; fi < 26; fi++) flies.push({ x: rnd(fi) * 700, y: 80 + rnd(fi + 
 // One hand-painted vista per zone, loaded from art/. If a file is missing the
 // procedural sky keeps drawing, so the game never shows a blank frame.
 var ART_NAMES = ['beach', 'jungle', 'cave', 'bridge', 'lighthouse'];
+var GROUND_TEX = [], GROUND_OK = [];
+(function loadGroundTex() {
+  for (var i = 0; i < ART_NAMES.length; i++) (function (i) {
+    var im = new Image();
+    im.onload = function () { GROUND_OK[i] = im.naturalWidth > 0; };
+    im.onerror = function () { GROUND_OK[i] = false; };
+    im.src = 'art/ground_' + ART_NAMES[i] + '.webp';
+    GROUND_TEX[i] = im;
+  })(i);
+})();
+function groundTexAt(i) { var im = GROUND_TEX[i]; return (im && GROUND_OK[i]) ? im : null; }
 var ART = [], ART_OK = [];
 (function loadPaintedArt() {
   for (var i = 0; i < ART_NAMES.length; i++) (function (i) {
@@ -2072,7 +2103,8 @@ function render() {
   var shy = S.shake > 0 ? (Math.random() - 0.5) * 5 * Math.min(1, S.shake * 3) : 0;
   ctx.setTransform(SC, 0, 0, SC, shx * SC, shy * SC);
   var cx = cam + VW / 2, th = themeAt(cx), cave = caveAmt(cx);
-  if (!drawBackdrop()) {
+  var artDrawn = drawBackdrop();
+  if (!artDrawn) {
     drawSky(th, cave);
     drawSea(th);
     drawFar(th);
@@ -2082,7 +2114,7 @@ function render() {
     if (!gfxLite && cave < 0.7) hazeBand(mixc(th.skyB, th.tree1, 0.5), GROUND - 95, 115, 0.17);
     treeLayer(0.6, 210, 190, 'tree1', 50, th);
   }
-  drawCaveWall(cave);
+  if (!artDrawn) drawCaveWall(cave);
   drawGround(th);
   drawPlatforms(th);
   drawPool(th);
