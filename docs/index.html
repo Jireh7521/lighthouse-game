@@ -210,6 +210,8 @@ button { font: inherit; color: inherit; }
 </main>
 <script>
 (function () {
+// Bump this whenever an art file changes so browsers and the CDN refetch it.
+var ASSET_V = '5';
 'use strict';
 
 // ---------------------------------------------------------------- constants
@@ -1849,7 +1851,7 @@ var HUNTER_SPR = {};
     var o = { img: im, ready: false, w: m.w, h: m.h, dx: m.dx, dy: m.dy };
     HUNTER_SPR[k] = o;
     im.onload = function () { o.ready = im.naturalWidth > 0; };
-    im.src = 'art/hunter_' + k + '.webp';
+    im.src = 'art/hunter_' + k + '.webp?v=' + ASSET_V;
   })(k);
 })();
 function hunterPose(p, run) {
@@ -1933,7 +1935,7 @@ var ENEMY_SPR = {};
     var o = { img: im, ready: false, w: m.w, h: m.h, dx: m.dx, dy: m.dy };
     ENEMY_SPR[k] = o;
     im.onload = function () { o.ready = im.naturalWidth > 0; };
-    im.src = 'art/' + k + '.webp';
+    im.src = 'art/' + k + '.webp?v=' + ASSET_V;
   })(k);
 })();
 function enemyPose(e, t) {
@@ -2057,7 +2059,7 @@ var GROUND_TEX = [], GROUND_OK = [];
     var im = new Image();
     im.onload = function () { GROUND_OK[i] = im.naturalWidth > 0; };
     im.onerror = function () { GROUND_OK[i] = false; };
-    im.src = 'art/ground_' + ART_NAMES[i] + '.webp';
+    im.src = 'art/ground_' + ART_NAMES[i] + '.webp?v=' + ASSET_V;
     GROUND_TEX[i] = im;
   })(i);
 })();
@@ -2068,7 +2070,7 @@ var ART = [], ART_OK = [];
     var im = new Image();
     im.onload = function () { ART_OK[i] = im.naturalWidth > 0; };
     im.onerror = function () { ART_OK[i] = false; };
-    im.src = 'art/' + ART_NAMES[i] + '.webp';
+    im.src = 'art/' + ART_NAMES[i] + '.webp?v=' + ASSET_V;
     ART[i] = im;
   })(i);
 })();
