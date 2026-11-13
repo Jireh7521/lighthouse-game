@@ -2444,25 +2444,28 @@ window.addEventListener('load', function () {
   L.start();
   setTimeout(function () {
     var S = L.S, cv = document.getElementById('cv');
-    var Z = 4, CW = 96, CH = 92, n = 4;
-    var out = document.createElement('canvas');
-    out.width = CW*Z*n; out.height = CH*Z;
-    var o = out.getContext('2d');
-    o.fillStyle='#0b0f0a'; o.fillRect(0,0,out.width,out.height);
     var k = cv.width/640;
-    for (var i=0;i<n;i++) {
-      S.mode='play'; S.p.x = 900; S.p.y = 296; S.p.onGround=true; S.p.vy=0; S.p.vx=200; S.p.face=1;
-      S.p.inv=0; S.p.stab=0; S.p.sq=0; S.p.anim=1; S.p.ph = i*Math.PI/2; S.cam = S.p.x-140;
+    var shots = [], out = [];
+    for (var i=0;i<4;i++) {
+      S.mode='play'; S.p.x=900; S.p.y=296; S.p.onGround=true; S.p.vy=0; S.p.vx=200; S.p.face=1;
+      S.p.inv=0; S.p.stab=0; S.p.sq=0; S.p.anim=1; S.p.ph=i*Math.PI/2; S.cam=S.p.x-140;
       L.render();
-      o.drawImage(cv, (140-24)*k, (296-72)*k, CW*k, CH*k, i*CW*Z, 0, CW*Z, CH*Z);
-      o.strokeStyle='#666'; o.strokeRect(i*CW*Z,0,CW*Z,CH*Z);
-      o.fillStyle='#fff'; o.font='bold 16px monospace';
-      o.fillText(['contact A','pass','contact B','pass'][i], i*CW*Z+6, 20);
+      var c = document.createElement('canvas'); c.width=Math.round(72*k); c.height=Math.round(80*k);
+      var g = c.getContext('2d');
+      g.drawImage(cv, Math.round((140-30)*k), Math.round((296-72)*k), c.width, c.height, 0,0,c.width,c.height);
+      var d = g.getImageData(0,0,c.width,c.height).data;
+      var ink = 0; for (var j=0;j<d.length;j+=4) if (d[j]+d[j+1]+d[j+2] > 40) ink++;
+      shots.push({d:d, ink:ink}); out.push('f'+i+' ink='+ink);
     }
-    document.body.innerHTML='';
-    document.body.style.margin='0'; document.body.style.background='#0b0f0a';
-    out.style.width=out.width+'px';
-    document.body.appendChild(out);
+    function diff(a,b){ var n=0; for (var j=0;j<a.length;j+=4){ if (Math.abs(a[j]-b[j])+Math.abs(a[j+1]-b[j+1])+Math.abs(a[j+2]-b[j+2])>24) n++; } return n; }
+    out.push('d01='+diff(shots[0].d,shots[1].d));
+    out.push('d12='+diff(shots[1].d,shots[2].d));
+    out.push('d23='+diff(shots[2].d,shots[3].d));
+    out.push('d30='+diff(shots[3].d,shots[0].d));
+    out.push('d02='+diff(shots[0].d,shots[2].d));
+    document.title = out.join(' ');
+    var el=document.createElement('div'); el.style.cssText='position:fixed;top:0;left:0;background:#000;color:#0f0;font:14px monospace;padding:6px;z-index:99';
+    el.textContent = out.join('  '); document.body.appendChild(el);
   }, 1200);
 });
 </script>
