@@ -2903,6 +2903,7 @@ function pause() {
     '<button class="tiny" id="tutagain" type="button">Replay the basics</button>');
   $('resume').addEventListener('click', resume);
   $('tutagain').addEventListener('click', function () { TUT.force = true; startGame(); });
+if (tutStored()) $('tutagain').hidden = false;   // returning players can replay the lesson
   $('resume').focus();
 }
 function resume() { if (S.mode !== 'paused') return; S.mode = 'play'; $('ov').hidden = true; last = performance.now(); }
