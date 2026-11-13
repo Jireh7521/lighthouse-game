@@ -2476,22 +2476,17 @@ window.addEventListener('load', function () {
   L.start();
   setTimeout(function () {
     var S = L.S, cv = document.getElementById('cv');
-    var cams = [300, 1800, 4000, 5600, 6400];
-    var names = ['beach','jungle','cave','bridge','lighthouse'];
-    var CW = 512, CH = 288;
+    var cams = [6350, 5250];
     var out = document.createElement('canvas');
-    out.width = CW*2; out.height = CH*3;
+    out.width = 1100; out.height = 620;
     var o = out.getContext('2d');
-    o.fillStyle='#000'; o.fillRect(0,0,out.width,out.height);
     var k = cv.width/640;
     for (var i=0;i<cams.length;i++){
-      S.mode='play'; S.cam = cams[i]; S.p.x = cams[i]+200; S.p.y = 296; S.p.onGround=true; S.p.vy=0; S.p.vx=0;
+      S.mode='play'; S.cam = cams[i]; S.p.x = cams[i]+180; S.p.y = 296; S.p.onGround=true; S.p.vy=0; S.p.vx=0;
       S.p.inv=0; S.p.hp=5; S.p.stab=0; S.p.sq=0;
       L.render();
-      o.drawImage(cv, 0,0, Math.min(cv.width, 640*k), Math.min(cv.height, 360*k), (i%2)*CW, Math.floor(i/2)*CH, CW, CH);
-      o.strokeStyle='#555'; o.strokeRect((i%2)*CW, Math.floor(i/2)*CH, CW, CH);
-      o.fillStyle='#fff'; o.font='bold 16px monospace';
-      o.fillText(names[i], (i%2)*CW+8, Math.floor(i/2)*CH+20);
+      o.drawImage(cv, 0,0, 640*k, 360*k, 0, i*310, 550, 310);
+      o.strokeStyle='#666'; o.strokeRect(0, i*310, 550, 310);
     }
     document.body.innerHTML=''; document.body.style.margin='0'; document.body.style.background='#000';
     out.style.width = out.width + 'px';
