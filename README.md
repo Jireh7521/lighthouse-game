@@ -20,13 +20,17 @@ src/                 the source of truth, edited by hand
   js/06-shell.js     layout, phone rotation, input, gamepad, the settings panel
   js/07-boot.js      the main loop and the test hook
   art/*.webp         the painted plates and sprites
+  static/            favicon, home-screen icons, web manifest, social card
 tools/
-  build.mjs          concatenates src/ into the deployable bundle in docs/
+  build.mjs          builds docs/ from src/: concatenates the js, hashes the links,
+                     and copies src/art and src/static through unchanged
   serve.mjs          a local static server for docs/
+  make-icons.py      regenerates the icons and og.jpg into src/static (needs Pillow)
 tests/
   harness.mjs        a small browser stand-in so the game runs under Node
   run.mjs            the gameplay test suite
 docs/                GENERATED - the published site, served by GitHub Pages
+                     (index.html, css/, js/, art/ and the static icons all come from src/)
 ```
 
 `docs/` is the only thing published. Never edit it by hand: `npm run build`
@@ -88,6 +92,11 @@ the player is collected: no accounts, no email, no IP logging, no cookies. A run
 that fails the sanity checks (a time under 15 seconds, a score over 500 000, a
 malformed body) is refused with a 400 rather than stored, and a flood of
 identical submissions is collapsed to one row.
+
+## Licence
+
+All rights reserved. See [LICENSE](LICENSE). The code, art and audio are
+published to be played, not reused; ask before copying any of it.
 
 ## Credits
 

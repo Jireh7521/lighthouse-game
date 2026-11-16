@@ -1,5 +1,5 @@
 // Bump this whenever an art file changes so browsers and the CDN refetch it.
-var ASSET_V = '7';
+var ASSET_V = '8';
 'use strict';
 
 // ---------------------------------------------------------------- constants

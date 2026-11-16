@@ -3,8 +3,10 @@
 //   src/js/*.js   -> docs/js/game.js   (one IIFE, parts concatenated in filename order)
 //   src/css/*.css -> docs/css/game.css
 //   src/index.html -> docs/index.html  (stylesheet and script tags get a content hash)
+//   src/static/*  -> docs/*            (icons, manifest, social card: copied byte for byte)
+//   src/art/*     -> docs/art/*        (painted plates and sprites: copied byte for byte)
 // `--check` rebuilds in memory and fails if the committed output is stale.
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 
@@ -32,6 +34,16 @@ const html = htmlSrc
   .replace("<!--CSS-->", `<link rel="stylesheet" href="css/game.css?v=${hash(css)}">`)
   .replace("<!--JS-->", `<script src="js/game.js?v=${hash(js)}"></script>`);
 
+const art = readDir("src/art").map((f) => ({
+  path: `docs/art/${f}`,
+  file: join(root, "src/art", f),
+}));
+
+const statics = readDir("src/static").map((f) => ({
+  path: `docs/${f}`,
+  file: join(root, "src/static", f),
+}));
+
 const outputs = [
   { path: "docs/js/game.js", body: js },
   { path: "docs/css/game.css", body: css },
@@ -53,7 +65,22 @@ for (const out of outputs) {
     console.log(`built ${out.path} (${Buffer.byteLength(out.body)} bytes)`);
   }
 }
+for (const st of [...statics, ...art]) {
+  const full = join(root, st.path);
+  const now = existsSync(full) ? readFileSync(full) : null;
+  const want = readFileSync(st.file);
+  if (check) {
+    if (!now || !now.equals(want)) {
+      console.error(`build --check: ${st.path} is out of date. Run: npm run build`);
+      stale++;
+    }
+  } else {
+    mkdirSync(dirname(full), { recursive: true });
+    copyFileSync(st.file, full);
+    console.log(`copied ${st.path} (${want.length} bytes)`);
+  }
+}
 if (check) {
   if (stale) process.exit(1);
-  console.log(`build --check: docs/ matches src/ (${parts.length} js parts, ${Buffer.byteLength(js)} bytes of js)`);
+  console.log(`build --check: docs/ matches src/ (${parts.length} js parts, ${Buffer.byteLength(js)} bytes of js, ${statics.length + art.length} copied files)`);
 }
