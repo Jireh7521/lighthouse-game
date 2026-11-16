@@ -174,6 +174,21 @@ try {
   ok("hard difficulty gives enemies an extra heart", hardCrab && hardCrab.maxhp >= 2, hardCrab && `maxhp ${hardCrab.maxhp}`);
   ok("a saved reduced-motion preference is applied on load", hard.win.document.documentElement.classList.contains("reduce-motion"));
 
+  // ---------------------------------------------------------------- installable app shell
+  const fs = await import("node:fs");
+  const docs = new URL("../docs/", import.meta.url).pathname;
+  const sw = fs.readFileSync(docs + "sw.js", "utf8");
+  const list = JSON.parse(sw.slice(sw.indexOf("const FILES = ") + 14, sw.lastIndexOf("];") + 1));
+  const art = fs.readdirSync(docs + "art").map((f) => "art/" + f);
+  ok("the offline cache lists the whole game", ["index.html", "manifest.webmanifest"].every((f) => list.includes(f)) && list.some((f) => f.startsWith("css/")) && list.some((f) => f.startsWith("js/")), list.length + " entries");
+  ok("every painted asset is precached", art.every((f) => list.includes(f)), art.filter((f) => !list.includes(f)).slice(0, 3).join());
+  const man = JSON.parse(fs.readFileSync(docs + "manifest.webmanifest", "utf8"));
+  const sizes = (man.icons || []).map((i) => i.sizes);
+  ok("the web manifest makes it installable", man.name === "Lighthouse Hunter" && man.display === "fullscreen" && sizes.includes("192x192") && sizes.includes("512x512"), JSON.stringify(sizes));
+  const html = fs.readFileSync(docs + "index.html", "utf8");
+  ok("the page links the manifest and icons", /rel="manifest"/.test(html) && /rel="apple-touch-icon"/.test(html));
+  ok("the game registers its service worker", /serviceWorker\.register\('sw\.js'\)/.test(fs.readFileSync(docs + "js/game.js", "utf8")));
+
   console.log(`\n${results.length - failed}/${results.length} tests passed`);
   process.exit(failed ? 1 : 0);
 } catch (e) {

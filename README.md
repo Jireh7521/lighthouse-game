@@ -93,6 +93,16 @@ that fails the sanity checks (a time under 15 seconds, a score over 500 000, a
 malformed body) is refused with a 400 rather than stored, and a flood of
 identical submissions is collapsed to one row.
 
+## Installable app
+
+The page is a PWA: it installs to a home screen or desktop and then plays with no
+connection. `src/sw.template.js` is turned into `docs/sw.js` by the build, which
+fills in a cache version and the full file list (markup, styles, script, icons,
+manifest and all 22 painted assets). Change anything and the version changes, so
+the old cache is dropped on the next visit. The bar shows an **Install app**
+button when the browser offers one; on iPhone and iPad it explains Share -> Add
+to Home Screen instead.
+
 ## Licence
 
 All rights reserved. See [LICENSE](LICENSE). The code, art and audio are

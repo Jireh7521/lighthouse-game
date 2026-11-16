@@ -3146,6 +3146,37 @@ if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').addEvent
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', function () { if (prefs.motion === 'auto') applyMotion(); });
 }
 
+
+// ---------------------------------------------------------------- install and offline
+// The game is a PWA: installable from the browser, and it keeps playing with no
+// connection once the service worker has cached the shell.
+var installEvt = null;
+var installBtn = $('install');
+var iOSStandalone = !!(window.navigator && window.navigator.standalone);
+var isIOS = /iPad|iPhone|iPod/.test((window.navigator && navigator.userAgent) || '') ||
+  ((window.navigator && navigator.platform === 'MacIntel') && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  installEvt = e;
+  if (installBtn) installBtn.hidden = false;
+});
+window.addEventListener('appinstalled', function () {
+  installEvt = null;
+  if (installBtn) installBtn.hidden = true;
+  toast('Installed. Open it from your home screen and it plays offline.', 4200);
+});
+if (installBtn) {
+  if (isIOS && !iOSStandalone) installBtn.hidden = false;
+  installBtn.addEventListener('click', function () {
+    if (installEvt) { installEvt.prompt(); installEvt = null; installBtn.hidden = true; return; }
+    toast(isIOS ? 'On iPhone or iPad: Share, then Add to Home Screen.' : 'Use your browser menu, then Install app or Add to Home Screen.', 4600);
+  });
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* offline simply stays off */ });
+  });
+}
 // ---------------------------------------------------------------- main loop
 var last = performance.now(), acc = 0;
 function frame(now) {

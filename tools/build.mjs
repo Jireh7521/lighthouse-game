@@ -44,10 +44,35 @@ const statics = readDir("src/static").map((f) => ({
   file: join(root, "src/static", f),
 }));
 
+// ---- service worker: one cache keyed by a hash of everything published
+const swSrc = readFileSync(join(root, "src/sw.template.js"), "utf8");
+const precache = [
+  "./",
+  "index.html",
+  `css/game.css?v=${hash(css)}`,
+  `js/game.js?v=${hash(js)}`,
+  ...readDir("src/static").map((f) => f),
+  ...readDir("src/art").map((f) => `art/${f}`),
+];
+const swVersion = createHash("sha256")
+  .update(css)
+  .update(js)
+  .update(html)
+  .update(Buffer.concat([
+    ...readDir("src/static").map((f) => readFileSync(join(root, "src/static", f))),
+    ...readDir("src/art").map((f) => readFileSync(join(root, "src/art", f))),
+  ]))
+  .digest("hex")
+  .slice(0, 8);
+const sw = swSrc
+  .replace("'__VERSION__'", JSON.stringify(swVersion))
+  .replace("__FILES__", JSON.stringify(precache, null, 2));
+
 const outputs = [
   { path: "docs/js/game.js", body: js },
   { path: "docs/css/game.css", body: css },
   { path: "docs/index.html", body: html },
+  { path: "docs/sw.js", body: sw },
 ];
 
 let stale = 0;
